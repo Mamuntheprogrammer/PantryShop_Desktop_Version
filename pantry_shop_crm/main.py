@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from models.database import Database  # Import the database setup class
+from views.login_view import LoginView
 
 class PantryShopCRMApp:
     def __init__(self, root):
@@ -35,20 +36,16 @@ class PantryShopCRMApp:
 
     def create_login_form(self):
         # Create the login form
-        tk.Label(self.root, text="Username:").pack(pady=10)
-        self.username_entry = tk.Entry(self.root, width=30)
-        self.username_entry.pack(pady=5)
+        LoginView.create_login_form(self)
 
-        tk.Label(self.root, text="Password:").pack(pady=10)
-        self.password_entry = tk.Entry(self.root, width=30, show="*")
-        self.password_entry.pack(pady=5)
-
-        login_button = tk.Button(self.root, text="Login", width=20, command=self.handle_login)
-        login_button.pack(pady=20)
 
     def handle_login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+    
+    def handle_signup(self):
+        pass
+
 
         # Here we call the authentication logic (not shown in this snippet)
         # For now, let's simulate success
