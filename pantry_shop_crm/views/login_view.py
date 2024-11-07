@@ -6,7 +6,7 @@ class LoginView:
     def __init__(self, root, show_signup_screen_callback):
         self.root = root
         self.show_signup_screen_callback = show_signup_screen_callback
-        self.root.title("Login")
+        self.root.title("Food Pantry Management System")
         self.root.geometry("900x600")
         self.root.config(bg="#f4f4f4")
 
