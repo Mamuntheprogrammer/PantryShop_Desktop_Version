@@ -63,7 +63,7 @@ class LoginView:
         # Destroy current widgets (Login form)
         self.clear_all_widgets()
 
-        from .stock_view import UserView
+        from .user_view_2 import UserView
         UserView(self.root, self.logout)
 
     def logout(self):
