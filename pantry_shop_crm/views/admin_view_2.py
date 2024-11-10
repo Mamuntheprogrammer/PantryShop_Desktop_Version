@@ -6,14 +6,14 @@ from tkinter import messagebox,Tk, StringVar, IntVar
 from tkinter.simpledialog import askstring
 
 class AdminView:
-    def __init__(self, root):
+    def __init__(self, root,show_login_screen_callback):
         self.root = root
+        self.show_login_screen_callback = show_login_screen_callback
         self.root.title("Admin Dashboard")
         self.root.geometry("900x600")
-
-        self.current_frame = None  # Track the current visible frame
+        self.current_frame = None
         self.create_admin_menu()  # Setup the menu
-        self.create_admin_dashboard()  # Setup the dashboard with central content frame
+        self.create_admin_dashboard()  # Setup the dashboard with frames and buttons
 
     def create_admin_menu(self):
         # Create the menu bar
@@ -79,7 +79,14 @@ class AdminView:
         """Display a welcome message when no specific view is selected."""
         welcome_frame = ttk.Frame(self.content_frame)
         ttk.Label(welcome_frame, text="Welcome to the Admin Dashboard", font=("Helvetica", 16)).pack(pady=20)
+        
+
+        # # Align the Back button below the Submit button, centered
+        # back_button = ttk.Button(welcome_frame, text="Back", width=20, command=self.show_login_screen_callback)
+        # back_button.pack(pady=5)
+
         self.show_frame(welcome_frame)
+
 
     # -------------------- Material Management Views --------------------
 

@@ -48,110 +48,32 @@ class LoginView:
             messagebox.showinfo("Login", "Login successful!")
             self.show_admin_view()  # Navigate to admin view
         else:
-            messagebox.showerror("Login", "Invalid username or password.")
+            self.show_user_view()  # Navigate to user view if login as a user
+            # Uncomment if you want to show an error on invalid credentials
+            # messagebox.showerror("Login", "Invalid username or password.")
 
     def show_admin_view(self):
         # Destroy current widgets (Login form)
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        self.clear_all_widgets()
 
-        # Create menu bar for admin view
-        menu_bar = tk.Menu(self.root)
-        
-        # Material Management menu
-        material_menu = tk.Menu(menu_bar, tearoff=0)
-        material_menu.add_command(label="Upload Material", command=self.upload_material)
-        material_menu.add_command(label="Create Material", command=self.create_material)
-        material_menu.add_command(label="View Material Report", command=self.view_material_report)
-        material_menu.add_command(label="Add Material Type", command=self.add_material_type)
-        menu_bar.add_cascade(label="Material Management", menu=material_menu)
+        from .admin_view_2 import AdminView
+        AdminView(self.root, self.logout)
 
-        # Vendor Management menu
-        vendor_menu = tk.Menu(menu_bar, tearoff=0)
-        vendor_menu.add_command(label="Upload Vendor", command=self.upload_vendor)
-        vendor_menu.add_command(label="Add Vendor", command=self.create_vendor)
-        vendor_menu.add_command(label="Vendor Report", command=self.view_vendor_report)
-        menu_bar.add_cascade(label="Vendor Management", menu=vendor_menu)
+    def show_user_view(self):
+        # Destroy current widgets (Login form)
+        self.clear_all_widgets()
 
-        # Stock Management menu
-        stock_menu = tk.Menu(menu_bar, tearoff=0)
-        stock_menu.add_command(label="Upload Stock", command=self.upload_stock)
-        stock_menu.add_command(label="Update Stock", command=self.update_stock)
-        stock_menu.add_command(label="Stock Report", command=self.view_stock_report)
-        menu_bar.add_cascade(label="Stock Management", menu=stock_menu)
-
-        # Order Management menu
-        order_menu = tk.Menu(menu_bar, tearoff=0)
-        order_menu.add_command(label="Manage Orders", command=self.manage_orders)
-        order_menu.add_command(label="Order Report", command=self.view_order_report)
-        menu_bar.add_cascade(label="Order Management", menu=order_menu)
-
-        # User Management menu
-        user_menu = tk.Menu(menu_bar, tearoff=0)
-        user_menu.add_command(label="View User", command=self.view_user)
-        user_menu.add_command(label="User Management", command=self.manage_users)
-        menu_bar.add_cascade(label="User Management", menu=user_menu)
-
-        # Configure the menu bar
-        self.root.config(menu=menu_bar)
-
-        # Admin Dashboard Content
-        admin_frame = ttk.Frame(self.root, padding="20")
-        admin_frame.pack(padx=20, pady=30)
-
-        ttk.Label(admin_frame, text="Admin Dashboard", font=("Helvetica", 18, "bold"), foreground="#4CAF50").grid(row=0, column=0, columnspan=2, pady=(0, 20))
-
-        # Example buttons for Admin actions
-        ttk.Button(admin_frame, text="Manage Users", width=20).grid(row=1, column=0, pady=10)
-        ttk.Button(admin_frame, text="Manage Orders", width=20).grid(row=2, column=0, pady=10)
-        ttk.Button(admin_frame, text="View Reports", width=20).grid(row=3, column=0, pady=10)
-        ttk.Button(admin_frame, text="Logout", width=20, command=self.logout).grid(row=4, column=0, pady=10)
+        from .stock_view import UserView
+        UserView(self.root, self.logout)
 
     def logout(self):
-        # Clear current admin view and show login screen
+        # Clear all widgets and menus from the admin or user view
+        self.clear_all_widgets()
+        # Display the login screen again
+        self.create_login_form()
+
+    def clear_all_widgets(self):
+        """Clears all widgets, including menus, from the root window."""
         for widget in self.root.winfo_children():
             widget.destroy()
-        self.create_login_form()  # Go back to login screen
-
-    # Example placeholder functions for menu commands
-    def upload_material(self):
-        pass
-
-    def create_material(self):
-        pass
-
-    def view_material_report(self):
-        pass
-
-    def add_material_type(self):
-        pass
-
-    def upload_vendor(self):
-        pass
-
-    def create_vendor(self):
-        pass
-
-    def view_vendor_report(self):
-        pass
-
-    def upload_stock(self):
-        pass
-
-    def update_stock(self):
-        pass
-
-    def view_stock_report(self):
-        pass
-
-    def manage_orders(self):
-        pass
-
-    def view_order_report(self):
-        pass
-
-    def view_user(self):
-        pass
-
-    def manage_users(self):
-        pass
+        self.root.config(menu=None)  # Clear any leftover menu bars

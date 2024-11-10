@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 
 class AdminView:
-    def __init__(self, root):
+    def __init__(self, root,show_login_screen_callback):
         self.root = root
+        self.show_login_screen_callback = show_login_screen_callback
         self.root.title("Admin Dashboard")
         self.root.geometry("900x600")
         
