@@ -5,6 +5,10 @@ from datetime import datetime,date
 from tkinter import messagebox,Tk, StringVar, IntVar
 from tkinter.simpledialog import askstring
 
+#----------- this import is for upload data through excel file -----------
+
+from controllers.upfile_manager import UploadFileManager
+
 class AdminView:
     def __init__(self, root,show_login_screen_callback):
         self.root = root
@@ -103,15 +107,16 @@ class AdminView:
         ttk.Label(frame, text="Upload Material", font=("Helvetica", 16)).pack(pady=20)
         
         # Entry field for the file path
-        file_path_entry = ttk.Entry(frame, width=40)
-        file_path_entry.pack(pady=5, padx=10)
+        # Entry field for the file path
+        self.file_path_entry = ttk.Entry(frame, width=40)
+        self.file_path_entry.pack(pady=5, padx=10)
 
         # Button to select file and display the file path in the entry field
         def select_file():
             from tkinter import filedialog
             file_path = filedialog.askopenfilename(title="Select a File", filetypes=[("All Files", "*.*")])
-            file_path_entry.delete(0, tk.END)
-            file_path_entry.insert(0, file_path)
+            self.file_path_entry.delete(0, tk.END)
+            self.file_path_entry.insert(0, file_path)
 
         select_file_button = ttk.Button(frame, text="Select File", command=select_file)
         select_file_button.pack(pady=5)
@@ -1318,9 +1323,26 @@ class AdminView:
     # (Action methods as defined in your initial code...)
 
 
-    # Placeholder methods
+
+
     def upload_material(self):
-        print("Uploading Material")
+        # Get the file path from the entry field
+        file_path = self.file_path_entry.get()
+        
+        if not file_path:
+            messagebox.showerror("Error", "Please select a file to upload.")
+            return
+
+        # Instantiate the UploadFileManager and upload the file
+        manager = UploadFileManager()
+        result = manager.upload_materials(file_path)
+        
+        # Show a success or error message based on the result
+        if "successfully" in result:
+            messagebox.showinfo("Success", result)
+        else:
+            messagebox.showerror("Error", result)
+
 
     def create_material(self):
         print("Creating Material")
