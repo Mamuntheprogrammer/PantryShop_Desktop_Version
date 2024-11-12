@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-from controllers.login_system import LoginSystem
+from controllers.login_manager import LoginManager
 
 class LoginView:
     def __init__(self, root, show_signup_screen_callback):
@@ -20,10 +20,10 @@ class LoginView:
         # Title Label
         ttk.Label(form_frame, text="Login", font=("Helvetica", 18, "bold"), foreground="#4CAF50").grid(row=0, column=0, columnspan=3, pady=(0, 20))
 
-        # Username and Password input
-        ttk.Label(form_frame, text="Username:", font=("Helvetica", 12)).grid(row=1, column=0, sticky="w", pady=5)
-        self.username_entry = ttk.Entry(form_frame, width=30, font=("Helvetica", 12))
-        self.username_entry.grid(row=1, column=1, columnspan=2, pady=5)
+        # email and Password input
+        ttk.Label(form_frame, text="Email:", font=("Helvetica", 12)).grid(row=1, column=0, sticky="w", pady=5)
+        self.email_entry = ttk.Entry(form_frame, width=30, font=("Helvetica", 12))
+        self.email_entry.grid(row=1, column=1, columnspan=2, pady=5)
 
         ttk.Label(form_frame, text="Password:", font=("Helvetica", 12)).grid(row=2, column=0, sticky="w", pady=5)
         self.password_entry = ttk.Entry(form_frame, width=30, font=("Helvetica", 12), show="*")
@@ -40,17 +40,27 @@ class LoginView:
         exit_button.grid(row=5, column=1, columnspan=3, pady=(20, 0))
 
     def handle_login(self):
-        username = self.username_entry.get()
+        email = self.email_entry.get()
         password = self.password_entry.get()
+        print(email,password)
 
-        login_system = LoginSystem(username, password)
-        if login_system.authenticate():
+        # Create an instance of LoginManager with email and password
+        login_manager = LoginManager(email, password)
+
+        # Call the authenticate method
+        user_role = login_manager.authenticate()
+        print(user_role)
+
+        if user_role == "Admin":
             messagebox.showinfo("Login", "Login successful!")
             self.show_admin_view()  # Navigate to admin view
+        elif user_role == "User":
+            messagebox.showinfo("Login", "Login successful!")
+            self.show_user_view()  # Navigate to admin view
         else:
-            self.show_user_view()  # Navigate to user view if login as a user
-            # Uncomment if you want to show an error on invalid credentials
-            # messagebox.showerror("Login", "Invalid username or password.")
+            print("Invalid credentials.")
+
+
 
     def show_admin_view(self):
         # Destroy current widgets (Login form)

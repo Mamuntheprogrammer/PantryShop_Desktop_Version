@@ -27,6 +27,7 @@ class Database:
                         first_name TEXT,
                         last_name TEXT,
                         email_address TEXT,
+                        password TEXT,    
                         mobile_number TEXT,
                         fulltime BOOLEAN,
                         parttime BOOLEAN,

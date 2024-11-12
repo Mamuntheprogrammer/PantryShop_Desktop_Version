@@ -53,6 +53,11 @@ class AdminView:
         user_menu.add_command(label="View User List", command=self.show_user_list_frame)
         menu_bar.add_cascade(label="User Management", menu=user_menu)
 
+        # Logout option in the menu
+        logout_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
+        logout_menu.add_command(label="Logout", command=self.logout)
+        menu_bar.add_cascade(label="Logout", menu=logout_menu)
+
         # Configure the root window to display this menu
         self.root.config(menu=menu_bar)
 
@@ -1352,6 +1357,15 @@ class AdminView:
 
     def view_user_list(self):
         print("Viewing User List")
+
+
+    def logout(self):
+        # Destroy any current frame and reset the window to the login view
+        if self.current_frame:
+            self.current_frame.destroy()
+
+        # Call the return_to_login method to display the login form
+        self.show_login_screen_callback()
 
 if __name__ == "__main__":
     root = tk.Tk()
