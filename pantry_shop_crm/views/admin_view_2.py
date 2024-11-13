@@ -142,37 +142,51 @@ class AdminView:
     def show_create_material_frame(self):
         # Create a new frame for the create material form
         frame = ttk.Frame(self.content_frame)
-        
-        # Title for the frame
-        ttk.Label(frame, text="Create Material", font=("Helvetica", 16)).pack(pady=20)
 
-        # Field labels and entry widgets
-        fields = {
-            "Material ID": ttk.Entry(frame),
+        # Title for the frame
+        ttk.Label(frame, text="Create Material", font=("Helvetica", 16)).grid(row=0, column=0, columnspan=2, pady=20)
+
+        obj = MaterialManager()
+
+        # Material type dropdown values from the database
+        material_types = obj.get_material_types()  # This method should fetch material types from the DB
+
+        # Define fields with labels
+        self.fields = {
             "Material Name": ttk.Entry(frame, width=40),
-            "Material Type": ttk.Entry(frame),
-            "Description": ttk.Entry(frame, width=20),
+            "Material Type": ttk.Combobox(frame, values=material_types, state="readonly", width=37),
+            "Description": ttk.Entry(frame, width=40),
             "Current Stock": ttk.Entry(frame),
-            "Status": ttk.Entry(frame, width=20),
+            "Status": ttk.Combobox(frame, values=["Inactive", "Active"], state="readonly", width=37),
             "Created Date": ttk.Entry(frame),
             "Created By": ttk.Entry(frame)
         }
 
-        # Display the fields in the frame
-        for label_text, entry_widget in fields.items():
-            ttk.Label(frame, text=label_text).pack(anchor="w", padx=10)
-            entry_widget.pack(pady=5, padx=10)
+        # Set default values and make certain fields read-only
+        self.fields["Status"].set("Inactive")  # Default status
+        self.fields["Created Date"].insert(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        self.fields["Created Date"].config(state="readonly")
+        self.fields["Created By"].insert(0, session.user_id)  # Set current user ID as creator
+        self.fields["Created By"].config(state="readonly")
 
-        # Create Material button to save the new material
+        # Display labels and entry fields in a structured format
+        row = 1  # Start from row 1 since row 0 is occupied by the title
+        for label_text, entry_widget in self.fields.items():
+            ttk.Label(frame, text=label_text).grid(row=row, column=0, sticky="w", padx=10, pady=5)
+            entry_widget.grid(row=row, column=1, padx=10, pady=5)
+            row += 1
+
+        # Button to create material
         create_button = ttk.Button(frame, text="Create Material", command=self.create_material)
-        create_button.pack(pady=10)
+        create_button.grid(row=row, column=0, columnspan=2, pady=10)
 
-        # Home button to go back to the welcome frame
+        # Home button to return to the welcome frame
         home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        home_button.grid(row=row+1, column=0, columnspan=2, pady=10)
 
         # Show this frame
         self.show_frame(frame)
+
 
 
 
@@ -684,6 +698,8 @@ class AdminView:
         
         # Clear the fields or show a success message after update
         self.clear_fields()
+
+
 
     def clear_fields(self):
         # Clear all the fields after updating
@@ -1327,7 +1343,7 @@ class AdminView:
     # (Action methods as defined in your initial code...)
 
 
-
+#----------------------------------------- Upload Material Done --------------------
 
     def upload_material(self):
         # Get the file path from the entry field
@@ -1347,13 +1363,57 @@ class AdminView:
         else:
             messagebox.showerror("Error", result)
 
+#------------------------------- Material create -----------------------------
+
+    def clear_materials_fields(self):
+        # Loop through each field and clear the entry values
+        self.fields["Material Name"].delete(0, "end")
+        self.fields["Material Type"].set("")  # Clear the dropdown selection
+        self.fields["Description"].delete(0, "end")
+        self.fields["Current Stock"].delete(0, "end")
+        self.fields["Status"].set("Inactive")  # Reset to default status
+        self.fields["Created Date"].config(state="normal")
+        self.fields["Created Date"].delete(0, "end")
+        self.fields["Created Date"].insert(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        self.fields["Created Date"].config(state="readonly")
+        self.fields["Created By"].config(state="normal")
+        self.fields["Created By"].delete(0, "end")
+        self.fields["Created By"].insert(0, session.user_id)  # Reset to current user ID
+        self.fields["Created By"].config(state="readonly")
+
 
     def create_material(self):
-        print("Creating Material")
+        material_data = {
+        "material_name": self.fields["Material Name"].get(),
+        "material_type": self.fields["Material Type"].get(),
+        "description": self.fields["Description"].get(),
+        "current_stock": self.fields["Current Stock"].get(),
+        "status": self.fields["Status"].get(),
+        "created_date": self.fields["Created Date"].get(),
+        "created_by": self.fields["Created By"].get()}
 
+
+
+        print(material_data)
+
+        # Call signup manager to handle signup
+        manager = MaterialManager()
+        result = manager.create_material(material_data)
+        
+        # Display success or error message
+        if result["success"]:
+            messagebox.showinfo("Create Material", result["message"])
+            # self.show_welcome_message()
+            self.clear_materials_fields()
+        else:
+            messagebox.showerror("Error", result["message"])
+
+#----------------------------- Pending -----------------------------
     def view_material_report(self):
         print("Viewing Material Report")
 
+
+#----------------------------------------- Material Type creation Done ------------------------------
 
     def clear_material_type_fields(self):
         # Clear each entry field by deleting its content from the start to the end
@@ -1381,12 +1441,16 @@ class AdminView:
         
         # Display success or error message
         if result["success"]:
-            messagebox.showinfo("Signup", result["message"])
+            messagebox.showinfo("Material Type", result["message"])
             # self.show_welcome_message()
             self.clear_material_type_fields()
         else:
             messagebox.showerror("Error", result["message"])
   
+
+
+
+#-------------------------------------- Pending -----------------------------------------------
 
     def add_vendor(self):
         print("Adding Vendor")
