@@ -25,6 +25,7 @@ class SignupManager:
                     already_graduate, work_per_week, age_group, 
                     is_active, role_type, created_date
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                           
             ''', (
                 user_data["first_name"], user_data["last_name"], 
                 user_data["email_address"], user_data["password"], user_data["mobile_number"], 

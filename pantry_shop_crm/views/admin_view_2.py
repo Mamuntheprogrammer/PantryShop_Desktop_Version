@@ -5,9 +5,13 @@ from datetime import datetime,date
 from tkinter import messagebox,Tk, StringVar, IntVar
 from tkinter.simpledialog import askstring
 
-#----------- this import is for upload data through excel file -----------
+
+#----------- import session for id and role --------
+from controllers import session
+#----------- controllers imports -----------
 
 from controllers.upfile_manager import UploadFileManager
+from controllers.material_manager import MaterialManager
 
 class AdminView:
     def __init__(self, root,show_login_screen_callback):
@@ -303,13 +307,13 @@ class AdminView:
         self.created_date_entry.config(state="readonly")  # Read-only
         self.created_date_entry.grid(row=3, column=1, padx=5, pady=5)
 
-        # Created By entry
-        ttk.Label(form_frame, text="Created By:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
-        self.created_by_entry = ttk.Entry(form_frame)
-        self.created_by_entry.grid(row=4, column=1, padx=5, pady=5)
+        # # Created By entry
+        # ttk.Label(form_frame, text="Created By:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
+        # self.created_by_entry = ttk.Entry(form_frame)
+        # self.created_by_entry.grid(row=4, column=1, padx=5, pady=5)
 
         # "Create Material Type" button
-        create_button = ttk.Button(frame, text="Create Material Type", command=self.create_material_type)
+        create_button = ttk.Button(frame, text="Create Material Type", command=self.create_material_type_handler)
         create_button.pack(pady=10)
 
         # Home button to return to the welcome frame
@@ -1350,8 +1354,39 @@ class AdminView:
     def view_material_report(self):
         print("Viewing Material Report")
 
-    def create_material_type(self):
-        print("Creating Material")
+
+    def clear_material_type_fields(self):
+        # Clear each entry field by deleting its content from the start to the end
+        self.material_type_id_entry.delete(0, tk.END)
+        self.material_type_entry.delete(0, tk.END)
+        self.material_desc_entry.delete(0, tk.END)
+        self.created_date_entry.delete(0, tk.END)
+
+
+    def create_material_type_handler(self):
+
+        materialtype_data = {
+            "material_type_id": self.material_type_id_entry.get(),
+            "material_type": self.material_type_entry.get(),
+            "material_desc": self.material_desc_entry.get(),
+            "created_date": self.created_date_entry.get(),
+            "created_by": session.user_id}
+
+
+        print(materialtype_data)
+
+        # Call signup manager to handle signup
+        manager = MaterialManager()
+        result = manager.save_material_type(materialtype_data)
+        
+        # Display success or error message
+        if result["success"]:
+            messagebox.showinfo("Signup", result["message"])
+            # self.show_welcome_message()
+            self.clear_material_type_fields()
+        else:
+            messagebox.showerror("Error", result["message"])
+  
 
     def add_vendor(self):
         print("Adding Vendor")
