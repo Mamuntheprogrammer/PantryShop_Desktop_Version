@@ -33,7 +33,7 @@ class AdminView:
         # Material Management menu
         material_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
         material_menu.add_command(label="Upload Material", command=self.show_upload_material_frame)
-        material_menu.add_command(label="Create Material", command=self.show_create_material_frame)
+        material_menu.add_command(label="Create & Update Material", command=self.show_create_material_frame)
         material_menu.add_command(label="View Material Report", command=self.show_view_material_report_frame)
         material_menu.add_command(label="Create Material type", command=self.show_create_material_type_frame)  # Fixed reference
         menu_bar.add_cascade(label="Material Management", menu=material_menu)
@@ -41,13 +41,12 @@ class AdminView:
 
         # Vendor Management menu
         vendor_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
-        vendor_menu.add_command(label="Add Vendor", command=self.show_add_vendor_frame)
+        vendor_menu.add_command(label="Add & Update Vendor", command=self.show_add_vendor_frame)
         vendor_menu.add_command(label="Vendor Report", command=self.show_vendor_report_frame)
         menu_bar.add_cascade(label="Vendor Management", menu=vendor_menu)
 
         # Stock Management menu
         stock_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
-        stock_menu.add_command(label="Upload Stock", command=self.show_upload_stock_frame)
         stock_menu.add_command(label="Update Stock", command=self.show_update_stock_frame)
         stock_menu.add_command(label="Stock Report", command=self.show_stock_report_frame)
         menu_bar.add_cascade(label="Stock Management", menu=stock_menu)
@@ -145,54 +144,150 @@ class AdminView:
 
 #..... Material Menu  Frame-2 .....
 
+
     def show_create_material_frame(self):
-        # Create a new frame for the create material form
+        # Create a main frame for the Add or Edit Material view
         frame = ttk.Frame(self.content_frame)
+        frame.pack(fill="both", expand=True)
+        
+        # Title label
+        ttk.Label(frame, text="Add or Edit Material", font=("Helvetica", 16)).pack(pady=20)
+        
+        # Frame for loading material
+        load_material_frame = ttk.Frame(frame)
+        load_material_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Material ID field to load existing material data
+        ttk.Label(load_material_frame, text="Material ID (Enter to Edit Existing Material):").pack(side="left")
+        material_id_var = StringVar()
+        ttk.Entry(load_material_frame, textvariable=material_id_var).pack(side="left", padx=5)
+        ttk.Button(load_material_frame, text="Load Material", command=lambda: load_material(material_id_var)).pack(side="left", padx=5)
+        
 
-        # Title for the frame
-        ttk.Label(frame, text="Create Material", font=("Helvetica", 16)).grid(row=0, column=0, columnspan=2, pady=20)
+        
+        # Material details frame for input fields
+        material_details_frame = ttk.LabelFrame(frame, text="Material Details", padding=(10, 10))
+        material_details_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Define variables for each material attribute
+        material_name_var = StringVar()
+        material_type_var = StringVar()
+        description_var = StringVar()
+        current_stock_var = StringVar()
+        status_var = StringVar(value="Inactive")
+        created_date_var = StringVar(value=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        created_by_var = StringVar(value=session.user_id)
 
-        obj = MaterialManager()
+        # Initialize MaterialManager
+        material_manager = MaterialManager()
 
-        # Material type dropdown values from the database
-        material_types = obj.get_material_types()  # This method should fetch material types from the DB
+        # Fetch material types for the dropdown menu
+        material_types = material_manager.get_material_types()
+        
+        if material_types:
+            material_type_var.set(material_types[0])  # Set the first type as default if available
 
-        # Define fields with labels
-        self.fields = {
-            "Material Name": ttk.Entry(frame, width=40),
-            "Material Type": ttk.Combobox(frame, values=material_types, state="readonly", width=37),
-            "Description": ttk.Entry(frame, width=40),
-            "Current Stock": ttk.Entry(frame),
-            "Status": ttk.Combobox(frame, values=["Inactive", "Active"], state="readonly", width=37),
-            "Created Date": ttk.Entry(frame),
-            "Created By": ttk.Entry(frame)
-        }
+        # Material detail fields layout - adjust positions to avoid overlapping
+        fields = [
+            ("Material Name", material_name_var),
+            ("Description", description_var),
+            ("Current Stock", current_stock_var),
+            ("Status", status_var),
+            ("Created Date", created_date_var),
+            ("Created By", created_by_var),
+        ]
 
-        # Set default values and make certain fields read-only
-        self.fields["Status"].set("Inactive")  # Default status
-        self.fields["Created Date"].insert(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        self.fields["Created Date"].config(state="readonly")
-        self.fields["Created By"].insert(0, session.user_id)  # Set current user ID as creator
-        self.fields["Created By"].config(state="readonly")
+        # Populate the details section with labels and entry widgets
+        for i, (label_text, var) in enumerate(fields):
+            # Adjust row positions to skip the Material Type row
+            row_position = i + 1 if i >= 1 else i
+            ttk.Label(material_details_frame, text=label_text + ":").grid(row=row_position, column=0, sticky="e", padx=5, pady=2)
+            entry_state = "readonly" if label_text in ["Created Date", "Created By"] else "normal"
+            ttk.Entry(material_details_frame, textvariable=var, state=entry_state).grid(row=row_position, column=1, sticky="w", padx=5, pady=2)
 
-        # Display labels and entry fields in a structured format
-        row = 1  # Start from row 1 since row 0 is occupied by the title
-        for label_text, entry_widget in self.fields.items():
-            ttk.Label(frame, text=label_text).grid(row=row, column=0, sticky="w", padx=10, pady=5)
-            entry_widget.grid(row=row, column=1, padx=10, pady=5)
-            row += 1
+        # Material Type - Dropdown field on its dedicated row
+        ttk.Label(material_details_frame, text="Material Type:").grid(row=1, column=0, sticky="e", padx=5, pady=2)
+        material_type_dropdown = ttk.OptionMenu(material_details_frame, material_type_var, *material_types)
+        material_type_dropdown.grid(row=1, column=1, sticky="w", padx=5, pady=2)
 
-        # Button to create material
-        create_button = ttk.Button(frame, text="Create Material", command=self.create_material)
-        create_button.grid(row=row, column=0, columnspan=2, pady=10)
+        # Clear the entries
+        def clear_material_fields():
+            material_name_var.set("")
+            material_type_var.set(material_types[0] if material_types else "")
+            description_var.set("")
+            current_stock_var.set("")
+            status_var.set("Inactive")
+            created_date_var.set(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            created_by_var.set(session.user_id)
 
-        # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.grid(row=row+1, column=0, columnspan=2, pady=10)
+        # Function to load existing material data
+        def load_material(material_id_var):
+            material_id = material_id_var.get()
+            if material_id.isdigit():
+                material_data = material_manager.load_material(material_id)
+                print(material_data)
+                if material_data:
+                    material_name_var.set(material_data["material_name"])
+                    material_type_var.set(material_data["material_type"])
+                    description_var.set(material_data["description"])
+                    current_stock_var.set(material_data["current_stock"])
+                    status_var.set(material_data["status"])
+                    created_date_var.set(material_data["created_date"])
+                    created_by_var.set(material_data["created_by"])
+                else:
+                    messagebox.showinfo("Material Not Found", f"No material found with ID {material_id}")
+            else:
+                messagebox.showwarning("Invalid ID", "Please enter a valid material ID.")
 
-        # Show this frame
+        # Function to add a new material
+        def add_material():
+            new_material_data = {
+                "material_id": None,  # Automatically generated in most cases
+                "material_name": material_name_var.get(),
+                "material_type": material_type_var.get(),
+                "description": description_var.get(),
+                "current_stock": current_stock_var.get(),
+                "status": status_var.get(),
+                "created_date": created_date_var.get(),
+                "created_by": session.user_id,
+            }
+            material_manager.add_material(new_material_data)
+            clear_material_fields()
+
+        # Function to update existing material data
+        def update_material():
+            material_id = material_id_var.get()
+            if material_id and material_id.isdigit():
+                updated_material_data = {
+                    "material_name": material_name_var.get(),
+                    "material_type": material_type_var.get(),
+                    "description": description_var.get(),
+                    "current_stock": current_stock_var.get(),
+                    "status": status_var.get(),
+                    "created_date": created_date_var.get(),
+                    "created_by": created_by_var.get(),
+                }
+                material_manager.update_material(material_id, updated_material_data)
+                clear_material_fields()
+            else:
+                messagebox.showwarning("Update Error", "Please load a valid material to update.")
+
+        # Action buttons for Add and Update Material
+        actions_frame = ttk.Frame(frame)
+        actions_frame.pack(pady=10)
+        
+        ttk.Button(actions_frame, text="Add Material", command=add_material).grid(row=0, column=0, padx=10)
+        ttk.Button(actions_frame, text="Update Material", command=update_material).grid(row=0, column=1, padx=10)
+        ttk.Button(actions_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=2, padx=10)
+
+        # Display this frame
         self.show_frame(frame)
 
+
+
+
+
+#..... Material Menu  Frame-3 .....
 
     def fetch_material(self):
         material_manager = MaterialManager()
@@ -203,8 +298,6 @@ class AdminView:
             return material_data["data"]
         else:
             return []
-
-#..... Material Menu  Frame-3 .....
 
     def show_view_material_report_frame(self):
         # Create a new frame for the Material Report
@@ -245,11 +338,11 @@ class AdminView:
         ttk.Button(pagination_frame, text="Next", command=lambda: self.change_material_page(1)).grid(row=0, column=1, padx=5)
 
         # Export button
-        export_button = ttk.Button(pagination_frame, text="Export", command=self.export_material_report).grid(row=0, column=2, padx=5)
+        ttk.Button(pagination_frame, text="Export", command=self.export_material_report).grid(row=0, column=2, padx=5)
 
 
         # Home button to return to the welcome frame
-        home_button = ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
+        ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
 
 
         # Display this frame
@@ -350,6 +443,134 @@ class AdminView:
 
         # Display this frame
         self.show_frame(frame)
+
+
+
+# -------------------- Action Methods -------------------------------
+#--------------------- Material Manager -----------------------------
+
+
+    def upload_material(self):
+        # Get the file path from the entry field
+        file_path = self.file_path_entry.get()
+        
+        if not file_path:
+            messagebox.showerror("Error", "Please select a file to upload.")
+            return
+
+        # Instantiate the UploadFileManager and upload the file
+        manager = UploadFileManager()
+        result = manager.upload_materials(file_path)
+        
+        # Show a success or error message based on the result
+        if "successfully" in result:
+            messagebox.showinfo("Success", result)
+        else:
+            messagebox.showerror("Error", result)
+
+#------------------------------- Material create -----------------------------
+
+    def clear_materials_fields(self):
+        # Loop through each field and clear the entry values
+        self.fields["Material Name"].delete(0, "end")
+        self.fields["Material Type"].set("")  # Clear the dropdown selection
+        self.fields["Description"].delete(0, "end")
+        self.fields["Current Stock"].delete(0, "end")
+        self.fields["Status"].set("Inactive")  # Reset to default status
+        self.fields["Created Date"].config(state="normal")
+        self.fields["Created Date"].delete(0, "end")
+        self.fields["Created Date"].insert(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        self.fields["Created Date"].config(state="readonly")
+        self.fields["Created By"].config(state="normal")
+        self.fields["Created By"].delete(0, "end")
+        self.fields["Created By"].insert(0, session.user_id)  # Reset to current user ID
+        self.fields["Created By"].config(state="readonly")
+
+
+    def create_material(self):
+        material_data = {
+        "material_name": self.fields["Material Name"].get(),
+        "material_type": self.fields["Material Type"].get(),
+        "description": self.fields["Description"].get(),
+        "current_stock": self.fields["Current Stock"].get(),
+        "status": self.fields["Status"].get(),
+        "created_date": self.fields["Created Date"].get(),
+        "created_by": self.fields["Created By"].get()}
+
+
+
+        print(material_data)
+
+        # Call signup manager to handle signup
+        manager = MaterialManager()
+        result = manager.create_material(material_data)
+        
+        # Display success or error message
+        if result["success"]:
+            messagebox.showinfo("Create Material", result["message"])
+            # self.show_welcome_message()
+            self.clear_materials_fields()
+        else:
+            messagebox.showerror("Error", result["message"])
+
+#----------------------------- Export Materials to csv -----------------------------
+    def export_material_report(self):
+        # Get the current timestamp to append to the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Define the file paths
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"material_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export to both locations
+            self.material_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the material report: {str(e)}")
+
+
+
+
+#----------------------------------------- Material Type creation Done ------------------------------
+
+    def clear_material_type_fields(self):
+        # Clear each entry field by deleting its content from the start to the end
+        self.material_type_id_entry.delete(0, tk.END)
+        self.material_type_entry.delete(0, tk.END)
+        self.material_desc_entry.delete(0, tk.END)
+        self.created_date_entry.delete(0, tk.END)
+
+
+    def create_material_type_handler(self):
+
+        materialtype_data = {
+            "material_type_id": self.material_type_id_entry.get(),
+            "material_type": self.material_type_entry.get(),
+            "material_desc": self.material_desc_entry.get(),
+            "created_date": self.created_date_entry.get(),
+            "created_by": session.user_id}
+
+
+        print(materialtype_data)
+
+        # Call signup manager to handle signup
+        manager = MaterialManager()
+        result = manager.save_material_type(materialtype_data)
+        
+        # Display success or error message
+        if result["success"]:
+            messagebox.showinfo("Material Type", result["message"])
+            # self.show_welcome_message()
+            self.clear_material_type_fields()
+        else:
+            messagebox.showerror("Error", result["message"])
 
 #--------------------------------------------------------------------
 # -------------------- Vendor Management Views --------------------
@@ -502,15 +723,7 @@ class AdminView:
 #..... Vendor Menu  Frame-2 .....
 
 
-    def fetch_vendors(self):
-        vendor_manager = VendorManager()
-        vendor_data = vendor_manager.get_all_vendors()
 
-        if vendor_data["success"]:
-            # print(material_data)
-            return vendor_data["data"]
-        else:
-            return []
 
     def show_vendor_report_frame(self):
         # Create a new frame for the Vendor Report
@@ -553,11 +766,11 @@ class AdminView:
         ttk.Button(pagination_frame, text="Next", command=lambda: self.change_page(1)).grid(row=0, column=1, padx=5)
 
         # Export button
-        export_button = ttk.Button(pagination_frame, text="Export", command=self.export_vendor_report).grid(row=0, column=2, padx=5)
+        ttk.Button(pagination_frame, text="Export", command=self.export_vendor_report).grid(row=0, column=2, padx=5)
 
 
         # Home button to return to the welcome frame
-        home_button = ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
+        ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
 
 
         # Display this frame
@@ -608,6 +821,20 @@ class AdminView:
         # Refresh the displayed page
         self.display_vendor_page(self.vendor_tree.master)
 
+# -------------------- Action Methods -------------------------------
+#--------------------- Vendor Manager -------------------------------
+
+
+    def fetch_vendors(self):
+        vendor_manager = VendorManager()
+        vendor_data = vendor_manager.get_all_vendors()
+
+        if vendor_data["success"]:
+            # print(material_data)
+            return vendor_data["data"]
+        else:
+            return []
+
 
     def export_vendor_report(self):
         # Get the current timestamp to append to the filename
@@ -636,43 +863,9 @@ class AdminView:
 #--------------------------------------------------------------------
 
 
+
+
 #..... Stock Menu  Frame-1 .....
-
-
-    def show_upload_stock_frame(self):
-        # Clear any existing content and create a new frame
-        frame = ttk.Frame(self.content_frame)
-        
-        # Title for the upload section
-        ttk.Label(frame, text="Upload Stock", font=("Helvetica", 16)).pack(pady=20)
-        
-        # Entry field for the file path
-        file_path_entry = ttk.Entry(frame, width=40)
-        file_path_entry.pack(pady=5, padx=10)
-
-        # Button to select file and display the file path in the entry field
-        def select_file():
-            from tkinter import filedialog
-            file_path = filedialog.askopenfilename(title="Select Stock File", filetypes=[("Excel Files", "*.xlsx *.xls")])
-            file_path_entry.delete(0, tk.END)
-            file_path_entry.insert(0, file_path)
-
-        select_file_button = ttk.Button(frame, text="Select File", command=select_file)
-        select_file_button.pack(pady=5)
-
-        # Upload button
-        upload_button = ttk.Button(frame, text="Upload Stock", command=self.upload_stock)
-        upload_button.pack(pady=10)
-
-        # Home button to navigate back to the welcome message frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
-
-        # Display the frame
-        self.show_frame(frame)
-
-
-#..... Stock Menu  Frame-2 .....
 
     def show_update_stock_frame(self):
         # Create a new frame for updating stock
@@ -1480,141 +1673,14 @@ class AdminView:
 #--------------------------------------------------------------------
 
 
-#--------------------------- Upload Material Done --------------------
 
 
-    def upload_material(self):
-        # Get the file path from the entry field
-        file_path = self.file_path_entry.get()
-        
-        if not file_path:
-            messagebox.showerror("Error", "Please select a file to upload.")
-            return
-
-        # Instantiate the UploadFileManager and upload the file
-        manager = UploadFileManager()
-        result = manager.upload_materials(file_path)
-        
-        # Show a success or error message based on the result
-        if "successfully" in result:
-            messagebox.showinfo("Success", result)
-        else:
-            messagebox.showerror("Error", result)
-
-#------------------------------- Material create -----------------------------
-
-    def clear_materials_fields(self):
-        # Loop through each field and clear the entry values
-        self.fields["Material Name"].delete(0, "end")
-        self.fields["Material Type"].set("")  # Clear the dropdown selection
-        self.fields["Description"].delete(0, "end")
-        self.fields["Current Stock"].delete(0, "end")
-        self.fields["Status"].set("Inactive")  # Reset to default status
-        self.fields["Created Date"].config(state="normal")
-        self.fields["Created Date"].delete(0, "end")
-        self.fields["Created Date"].insert(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        self.fields["Created Date"].config(state="readonly")
-        self.fields["Created By"].config(state="normal")
-        self.fields["Created By"].delete(0, "end")
-        self.fields["Created By"].insert(0, session.user_id)  # Reset to current user ID
-        self.fields["Created By"].config(state="readonly")
-
-
-    def create_material(self):
-        material_data = {
-        "material_name": self.fields["Material Name"].get(),
-        "material_type": self.fields["Material Type"].get(),
-        "description": self.fields["Description"].get(),
-        "current_stock": self.fields["Current Stock"].get(),
-        "status": self.fields["Status"].get(),
-        "created_date": self.fields["Created Date"].get(),
-        "created_by": self.fields["Created By"].get()}
-
-
-
-        print(material_data)
-
-        # Call signup manager to handle signup
-        manager = MaterialManager()
-        result = manager.create_material(material_data)
-        
-        # Display success or error message
-        if result["success"]:
-            messagebox.showinfo("Create Material", result["message"])
-            # self.show_welcome_message()
-            self.clear_materials_fields()
-        else:
-            messagebox.showerror("Error", result["message"])
-
-#----------------------------- Export Materials to csv -----------------------------
-    def export_material_report(self):
-        # Get the current timestamp to append to the filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Define the file paths
-        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"material_report_{timestamp}.csv")
-
-        try:
-            # Ensure the Data folder exists, if not, create it
-            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
-
-            # Export to both locations
-            self.material_df.to_csv(data_folder_path, index=False)
-
-            # Show a message box indicating success
-            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
-
-        except Exception as e:
-            # Show error message if something goes wrong
-            MessageBox.showerror("Export Failed", f"An error occurred while exporting the material report: {str(e)}")
-
-
-
-
-#----------------------------------------- Material Type creation Done ------------------------------
-
-    def clear_material_type_fields(self):
-        # Clear each entry field by deleting its content from the start to the end
-        self.material_type_id_entry.delete(0, tk.END)
-        self.material_type_entry.delete(0, tk.END)
-        self.material_desc_entry.delete(0, tk.END)
-        self.created_date_entry.delete(0, tk.END)
-
-
-    def create_material_type_handler(self):
-
-        materialtype_data = {
-            "material_type_id": self.material_type_id_entry.get(),
-            "material_type": self.material_type_entry.get(),
-            "material_desc": self.material_desc_entry.get(),
-            "created_date": self.created_date_entry.get(),
-            "created_by": session.user_id}
-
-
-        print(materialtype_data)
-
-        # Call signup manager to handle signup
-        manager = MaterialManager()
-        result = manager.save_material_type(materialtype_data)
-        
-        # Display success or error message
-        if result["success"]:
-            messagebox.showinfo("Material Type", result["message"])
-            # self.show_welcome_message()
-            self.clear_material_type_fields()
-        else:
-            messagebox.showerror("Error", result["message"])
   
 
 
 
 #-------------------------------------- Pending -----------------------------------------------
 
-    def add_vendor(self):
-        print("Adding Vendor")
-
-    def view_vendor_report(self):
-        print("Viewing Vendor Report")
 
     def upload_stock(self):
         print("Uploading Stock")

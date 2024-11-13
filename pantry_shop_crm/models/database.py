@@ -106,7 +106,7 @@ class Database:
         # Create MaterialType Table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS material_type (
                                 id INTEGER PRIMARY KEY,
-                                material_type TEXT,
+                                m_type TEXT,
                                 material_desc TEXT,
                                 created_date TEXT,
                                 created_by INTEGER
