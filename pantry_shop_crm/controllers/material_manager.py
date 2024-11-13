@@ -94,7 +94,7 @@ class MaterialManager:
             """
             cursor.execute(query, (material_id,))
             material = cursor.fetchone()
-            print(material)
+
 
             if material:
                 material_data = {
@@ -147,6 +147,34 @@ class MaterialManager:
 
 
 
+
+    def update_stock(self, material_id, updated_data):
+        """Updates an existing material's stock information in the database."""
+        try:
+            conn = self.connect()
+            cursor = conn.cursor()
+
+            query = """
+            UPDATE materials SET current_stock = ?
+            WHERE material_id = ?
+            """
+            cursor.execute(query, (
+                updated_data['current_stock'],  # Use the current stock value
+                material_id  # Use the material ID to locate the correct record
+            ))
+
+            conn.commit()
+
+            if cursor.rowcount == 0:
+                messagebox.showinfo("Update Error", "No material found with the provided ID.")
+            else:
+                messagebox.showinfo("Material Updated", "Material stock has been successfully updated.")
+        except sqlite3.Error as e:
+            messagebox.showerror("Database Error", f"An error occurred: {e}")
+        finally:
+            conn.close()
+
+
 # -------------------------------- Get Meterials Data -------------------------------
 
 
@@ -175,3 +203,5 @@ class MaterialManager:
         finally:
             # Ensure the connection is closed after the operation
             conn.close()
+
+

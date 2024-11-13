@@ -869,170 +869,98 @@ class AdminView:
 
     def show_update_stock_frame(self):
         # Create a new frame for updating stock
+        # Create a main frame for the Add or Edit Material view
         frame = ttk.Frame(self.content_frame)
-
-        # Title for the update section
+        frame.pack(fill="both", expand=True)
+        
+        # Title label
         ttk.Label(frame, text="Update Stock", font=("Helvetica", 16)).pack(pady=20)
         
-        # Material and Batch Search Section
-        search_frame = ttk.Frame(frame)
-        search_frame.pack(pady=10)
-
-        # Material Name Label and Entry
-        ttk.Label(search_frame, text="Material Name:", width=15, anchor="w").grid(row=0, column=0, padx=5, pady=5)
-        self.material_search_entry = ttk.Entry(search_frame, width=40)
-        self.material_search_entry.grid(row=0, column=1, padx=5, pady=5)
-
-        # Batch Number Label and Entry
-        ttk.Label(search_frame, text="Batch Number:", width=15, anchor="w").grid(row=1, column=0, padx=5, pady=5)
-        self.batch_search_entry = ttk.Entry(search_frame, width=40)
-        self.batch_search_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        # Search Button aligned to the right of the search section
-        search_button = ttk.Button(search_frame, text="Search", command=self.search_stock)
-        search_button.grid(row=0, column=2, rowspan=2, padx=5, pady=5)
-
-        # Stock details section (after searching)
-        details_frame = ttk.Frame(frame)
-        details_frame.pack(pady=10)
-
-        # Quantity Label and Entry
-        ttk.Label(details_frame, text="Quantity:", width=15, anchor="w").grid(row=0, column=0, padx=5, pady=5)
-        self.quantity_entry = ttk.Entry(details_frame, width=40)
-        self.quantity_entry.grid(row=0, column=1, padx=5, pady=5)
-
-        # Unit Price Label and Entry
-        ttk.Label(details_frame, text="Unit Price:", width=15, anchor="w").grid(row=1, column=0, padx=5, pady=5)
-        self.unit_price_entry = ttk.Entry(details_frame, width=40)
-        self.unit_price_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        # Total Value Label and Entry (calculated as Quantity * Unit Price)
-        ttk.Label(details_frame, text="Total Value:", width=15, anchor="w").grid(row=2, column=0, padx=5, pady=5)
-        self.total_value_entry = ttk.Entry(details_frame, width=40)
-        self.total_value_entry.grid(row=2, column=1, padx=5, pady=5)
-
-        # Status Label and Entry (Active/Inactive)
-        ttk.Label(details_frame, text="Status:", width=15, anchor="w").grid(row=3, column=0, padx=5, pady=5)
-        self.status_entry = ttk.Entry(details_frame, width=40)
-        self.status_entry.grid(row=3, column=1, padx=5, pady=5)
-
-        # Expiry Date Label and Entry
-        ttk.Label(details_frame, text="Expiry Date:", width=15, anchor="w").grid(row=4, column=0, padx=5, pady=5)
-        self.expiry_date_entry = ttk.Entry(details_frame, width=40)
-        self.expiry_date_entry.grid(row=4, column=1, padx=5, pady=5)
-
-        # Vendor ID Label and Entry
-        ttk.Label(details_frame, text="Vendor ID:", width=15, anchor="w").grid(row=5, column=0, padx=5, pady=5)
-        self.vendor_id_entry = ttk.Entry(details_frame, width=40)
-        self.vendor_id_entry.grid(row=5, column=1, padx=5, pady=5)
-
-        # Purchase Date Label and Entry
-        ttk.Label(details_frame, text="Purchase Date:", width=15, anchor="w").grid(row=6, column=0, padx=5, pady=5)
-        self.purchase_date_entry = ttk.Entry(details_frame, width=40)
-        self.purchase_date_entry.grid(row=6, column=1, padx=5, pady=5)
-
-        # Reorder Level Label and Entry
-        ttk.Label(details_frame, text="Reorder Level:", width=15, anchor="w").grid(row=7, column=0, padx=5, pady=5)
-        self.reorder_level_entry = ttk.Entry(details_frame, width=40)
-        self.reorder_level_entry.grid(row=7, column=1, padx=5, pady=5)
-
-        # Location Label and Entry
-        ttk.Label(details_frame, text="Location:", width=15, anchor="w").grid(row=8, column=0, padx=5, pady=5)
-        self.location_entry = ttk.Entry(details_frame, width=40)
-        self.location_entry.grid(row=8, column=1, padx=5, pady=5)
-
-        # Button to update stock after editing
-        update_button = ttk.Button(frame, text="Update Stock", command=self.update_stock_details)
-        update_button.pack(pady=10)
-
-        # Home button to navigate back to the welcome message frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        # Frame for loading material
+        load_material_frame = ttk.Frame(frame)
+        load_material_frame.pack(fill="x", padx=10, pady=5)
         
-        # Show the frame
+        # Material ID field to load existing material data
+        ttk.Label(load_material_frame, text="Material ID (Enter to Edit Existing Material):").pack(side="left")
+        material_id_var = StringVar()
+        ttk.Entry(load_material_frame, textvariable=material_id_var).pack(side="left", padx=5)
+        ttk.Button(load_material_frame, text="Load Material", command=lambda: load_material(material_id_var)).pack(side="left", padx=5)
+        
+
+        
+        # Material details frame for input fields
+        material_details_frame = ttk.LabelFrame(frame, text="Stock Details", padding=(10, 10))
+        material_details_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Define variables for each material attribute
+        material_name_var = StringVar()
+        description_var = StringVar()
+        current_stock_var = StringVar()
+
+        material_manager = MaterialManager()
+
+        fields = [
+            ("Material Name", material_name_var),
+            ("Description", description_var),
+            ("Current Stock", current_stock_var),
+        ]
+
+        # Populate the details section with labels and entry widgets
+        for i, (label_text, var) in enumerate(fields):
+            # Adjust row positions to skip the Material Type row
+            row_position = i + 1 if i >= 1 else i
+            ttk.Label(material_details_frame, text=label_text + ":").grid(row=row_position, column=0, sticky="e", padx=5, pady=2)
+            entry_state = "readonly" if label_text in ["Material Name", "Description",] else "normal"
+            ttk.Entry(material_details_frame, textvariable=var, state=entry_state).grid(row=row_position, column=1, sticky="w", padx=5, pady=2)
+
+        # Clear the entries
+        def clear_material_fields():
+            material_id_var.set("")
+            material_name_var.set("")
+            description_var.set("")
+            current_stock_var.set("")
+
+
+        # Function to load existing material data
+        def load_material(material_id_var):
+            material_id = material_id_var.get()
+            if material_id.isdigit():
+                material_data = material_manager.load_material(material_id)
+                print(material_data)
+                if material_data:
+                    material_name_var.set(material_data["material_name"])
+                    description_var.set(material_data["description"])
+                    current_stock_var.set(material_data["current_stock"])
+                else:
+                    messagebox.showinfo("Material Not Found", f"No material found with ID {material_id}")
+            else:
+                messagebox.showwarning("Invalid ID", "Please enter a valid material ID.")
+
+
+        def update_material2():
+            material_id = material_id_var.get()
+            if material_id and material_id.isdigit():
+                updated_material_data = {
+                    "current_stock": current_stock_var.get()  # Ensure this is a valid numeric value
+                }
+                material_manager.update_stock(int(material_id), updated_material_data)
+                clear_material_fields()
+            else:
+                messagebox.showwarning("Update Error", "Please load a valid material to update.")
+
+
+        # Action buttons for Add and Update Material
+        actions_frame = ttk.Frame(frame)
+        actions_frame.pack(pady=10)
+        
+        ttk.Button(actions_frame, text="Update Stock", command=update_material2).grid(row=0, column=0, padx=10)
+        ttk.Button(actions_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=1, padx=10)
+
+        # Display this frame
         self.show_frame(frame)
 
-    def search_stock(self):
-        # Get material name and batch number from entries
-        material_name = self.material_search_entry.get()
-        batch_number = self.batch_search_entry.get()
-
-        # Implement your search logic here (for example, searching in a database)
-        self.search_and_display_stock(material_name, batch_number)
-
-    def search_and_display_stock(self, material_name, batch_number):
-        # Simulate fetching stock data for the material and batch (replace with real data retrieval logic)
-        stock_data = {
-            "material_name": material_name,
-            "batch_number": batch_number,
-            "quantity": 100,
-            "unit_price": 50,
-            "total_value": 5000,
-            "status": "Active",
-            "expiry_date": "2025-12-31",
-            "vendor_id": 1,
-            "purchase_date": "2024-10-15",
-            "reorder_level": 10,
-            "location": "Warehouse A",
-            "stock_id": 1  # Dummy stock ID for demonstration purposes
-        }
-        
-        # Check if material and batch are valid (dummy check here)
-        if stock_data["material_name"] == material_name and stock_data["batch_number"] == batch_number:
-            # Populate the fields with the fetched stock data
-            self.selected_stock_id = stock_data["stock_id"]
-            self.quantity_entry.delete(0, tk.END)
-            self.quantity_entry.insert(0, stock_data["quantity"])
-            self.unit_price_entry.delete(0, tk.END)
-            self.unit_price_entry.insert(0, stock_data["unit_price"])
-            self.total_value_entry.delete(0, tk.END)
-            self.total_value_entry.insert(0, stock_data["total_value"])
-            self.status_entry.delete(0, tk.END)
-            self.status_entry.insert(0, stock_data["status"])
-            self.expiry_date_entry.delete(0, tk.END)
-            self.expiry_date_entry.insert(0, stock_data["expiry_date"])
-            self.vendor_id_entry.delete(0, tk.END)
-            self.vendor_id_entry.insert(0, stock_data["vendor_id"])
-            self.purchase_date_entry.delete(0, tk.END)
-            self.purchase_date_entry.insert(0, stock_data["purchase_date"])
-            self.reorder_level_entry.delete(0, tk.END)
-            self.reorder_level_entry.insert(0, stock_data["reorder_level"])
-            self.location_entry.delete(0, tk.END)
-            self.location_entry.insert(0, stock_data["location"])
-        else:
-            print("Stock not found for the given material and batch.")
-
-    def update_stock_details(self):
-        # Implement the logic to update the stock record in your system
-        stock_id = self.selected_stock_id  # Assuming the stock ID is selected during the search
-        quantity = self.quantity_entry.get()
-        unit_price = self.unit_price_entry.get()
-        total_value = self.total_value_entry.get()
-        status = self.status_entry.get()
-        expiry_date = self.expiry_date_entry.get()
-        vendor_id = self.vendor_id_entry.get()
-        purchase_date = self.purchase_date_entry.get()
-        reorder_level = self.reorder_level_entry.get()
-        location = self.location_entry.get()
-        
-        # Update the stock data here (for example, update in a database)
-        print(f"Updated stock: {stock_id}, Quantity: {quantity}, Unit Price: {unit_price}, Total Value: {total_value}, "
-            f"Status: {status}, Expiry Date: {expiry_date}, Vendor ID: {vendor_id}, Purchase Date: {purchase_date}, "
-            f"Reorder Level: {reorder_level}, Location: {location}")
-        
-        # Clear the fields or show a success message after update
-        self.clear_fields()
 
 
-
-    def clear_fields(self):
-        # Clear all the fields after updating
-        self.material_search_entry.delete(0, tk.END)
-        self.batch_search_entry.delete(0, tk.END)
-        self.quantity_entry.delete(0, tk.END)
-        self.unit_price_entry.delete(0, tk.END)
-        self.total_value_entry.delete(0, tk.END)
-        self.status_entry.delete(0, tk.END)
 
 
 #..... Stock Menu  Frame-3 .....
@@ -1049,41 +977,40 @@ class AdminView:
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Dummy data for stock report (replace this with real data as needed)
-        stock_data = [
-            {"stock_id": i, "material_name": f"Material {i}", "batch_number": f"Batch {i}",
-            "quantity": 100 + i, "unit_price": 10 + i, "total_value": (100 + i) * (10 + i),
-            "status": "Active" if i % 2 == 0 else "Inactive", "expiry_date": "2024-12-31", "vendor_name": f"Vendor {i}"}
-            for i in range(1, 31)  # 30 sample records
-        ]
+        
+        material_data = self.fetch_material()
+        filtered_material_data = [tuple(row[i] for i in [0, 1, 2, 3, 4, 5]) for row in material_data]
+  
+
 
         # Convert dummy data to DataFrame for pagination and export purposes
-        self.stock_df = pd.DataFrame(stock_data)
+        self.columns = ["material_id", "material_name", "material_type", "description", "current_stock", "status",]
+        self.stock_df = pd.DataFrame(filtered_material_data,columns=self.columns)
 
         # Display the first 15 rows initially
         self.current_page = 0
         self.page_size = 15
-        self.display_stock_page(table_frame)
+        self.display_stock_page2(table_frame)
 
         # Pagination controls
         pagination_frame = ttk.Frame(frame)
         pagination_frame.pack(pady=10)
 
-        ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_stock_page(-1)).grid(row=0, column=0, padx=5)
-        ttk.Button(pagination_frame, text="Next", command=lambda: self.change_stock_page(1)).grid(row=0, column=1, padx=5)
+        ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_material_page2(-1)).grid(row=0, column=0, padx=5)
+        ttk.Button(pagination_frame, text="Next", command=lambda: self.change_material_page2(1)).grid(row=0, column=1, padx=5)
 
         # Export button
-        export_button = ttk.Button(frame, text="Export", command=self.export_stock_report)
-        export_button.pack(pady=10)
+        ttk.Button(pagination_frame, text="Export", command=self.export_stock_report).grid(row=0, column=2, padx=5)
+
 
         # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
+
 
         # Display this frame
         self.show_frame(frame)
 
-    def display_stock_page(self, parent):
+    def display_stock_page2(self, parent):
         # Clear existing table if any
         for widget in parent.winfo_children():
             widget.destroy()
@@ -1093,44 +1020,62 @@ class AdminView:
         tree_frame.pack(fill="both", expand=True)
 
         # Define columns for the Treeview
-        columns = ("stock_id", "material_name", "batch_number", "quantity", "unit_price", "total_value", "status", "expiry_date", "vendor_name")
-        self.stock_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
+        columns = ("material_id", "material_name", "material_type","description", "current_stock", "status")
+        self.material_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
 
         # Define column headings and set anchor to center
         for col in columns:
-            self.stock_tree.heading(col, text=col.replace("_", " ").title())
-            self.stock_tree.column(col, anchor="center")
+            self.material_tree.heading(col, text=col.replace("_", " ").title())
+            self.material_tree.column(col, anchor="center")
 
         # Vertical scrollbar
-        vert_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.stock_tree.yview)
+        vert_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.material_tree.yview)
         vert_scrollbar.pack(side="right", fill="y")
 
         # Horizontal scrollbar
-        horiz_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.stock_tree.xview)
+        horiz_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.material_tree.xview)
         horiz_scrollbar.pack(side="bottom", fill="x")
 
         # Configure scrollbars for the Treeview
-        self.stock_tree.configure(yscrollcommand=vert_scrollbar.set, xscrollcommand=horiz_scrollbar.set)
-        self.stock_tree.pack(fill="both", expand=True)
+        self.material_tree.configure(yscrollcommand=vert_scrollbar.set, xscrollcommand=horiz_scrollbar.set)
+        self.material_tree.pack(fill="both", expand=True)
 
-        # Load the current page of stock data
+        # Load the current page of material data
         start_idx = self.current_page * self.page_size
         end_idx = start_idx + self.page_size
         for _, row in self.stock_df.iloc[start_idx:end_idx].iterrows():
-            self.stock_tree.insert("", "end", values=list(row))
+            self.material_tree.insert("", "end", values=list(row))
 
-    def change_stock_page(self, direction):
+    def change_material_page2(self, direction):
         # Change page based on the direction (-1 for previous, +1 for next)
-        max_page = len(self.stock_df) // self.page_size
+        max_page = len(self.material_df) // self.page_size
         self.current_page = min(max(0, self.current_page + direction), max_page)
         
         # Refresh the displayed page
-        self.display_stock_page(self.stock_tree.master)
+        self.display_stock_page2(self.material_tree.master)
+
 
     def export_stock_report(self):
-        # Export the stock data to a CSV file
-        self.stock_df.to_csv("stock_report.csv", index=False)
-        print("Stock report exported to 'stock_report.csv'")
+        # Get the current timestamp to append to the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Define the file paths
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"Stock_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export to both locations
+            self.stock_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the Stock report: {str(e)}")
+
 
 
 
