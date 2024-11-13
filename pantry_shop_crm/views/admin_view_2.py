@@ -245,12 +245,12 @@ class AdminView:
         ttk.Button(pagination_frame, text="Next", command=lambda: self.change_material_page(1)).grid(row=0, column=1, padx=5)
 
         # Export button
-        export_button = ttk.Button(frame, text="Export", command=self.export_material_report)
-        export_button.pack(pady=10)
+        export_button = ttk.Button(pagination_frame, text="Export", command=self.export_material_report).grid(row=0, column=2, padx=5)
+
 
         # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        home_button = ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
+
 
         # Display this frame
         self.show_frame(frame)
@@ -501,6 +501,17 @@ class AdminView:
 
 #..... Vendor Menu  Frame-2 .....
 
+
+    def fetch_vendors(self):
+        vendor_manager = VendorManager()
+        vendor_data = vendor_manager.get_all_vendors()
+
+        if vendor_data["success"]:
+            # print(material_data)
+            return vendor_data["data"]
+        else:
+            return []
+
     def show_vendor_report_frame(self):
         # Create a new frame for the Vendor Report
         frame = ttk.Frame(self.content_frame)
@@ -512,17 +523,22 @@ class AdminView:
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Dummy vendor data (replace this with real data as needed)
-        vendor_data = [
-            {"vendor_id": 1, "vendor_name": "Vendor A", "contact_fname": "John", "contact_lname": "Doe",
-             "contact_email": "john@example.com", "contact_phone": "1234567890", "is_active": True, "created_date": "2024-01-01"},
-            {"vendor_id": 2, "vendor_name": "Vendor B", "contact_fname": "Jane", "contact_lname": "Doe",
-             "contact_email": "jane@example.com", "contact_phone": "0987654321", "is_active": False, "created_date": "2024-01-02"},
-            # Add more records as needed
-        ]
+        # # Dummy vendor data (replace this with real data as needed)
+        # vendor_data = [
+        #     {"vendor_id": 1, "vendor_name": "Vendor A", "contact_fname": "John", "contact_lname": "Doe",
+        #      "contact_email": "john@example.com", "contact_phone": "1234567890", "is_active": True, "created_date": "2024-01-01"},
+        #     {"vendor_id": 2, "vendor_name": "Vendor B", "contact_fname": "Jane", "contact_lname": "Doe",
+        #      "contact_email": "jane@example.com", "contact_phone": "0987654321", "is_active": False, "created_date": "2024-01-02"},
+        #     # Add more records as needed
+        # ]
         
+        vendor_data = self.fetch_vendors()
+
+        
+        self.columns = ["vendor_id","vendor_name","contact_fname","contact_lname","contact_email","contact_phone","address_key","is_active","created_date","created_by"]
+
         # Convert dummy data to DataFrame for pagination and export purposes
-        self.vendor_df = pd.DataFrame(vendor_data)
+        self.vendor_df = pd.DataFrame(vendor_data,columns = self.columns)
 
         # Display the first 15 rows initially
         self.current_page = 0
@@ -537,12 +553,12 @@ class AdminView:
         ttk.Button(pagination_frame, text="Next", command=lambda: self.change_page(1)).grid(row=0, column=1, padx=5)
 
         # Export button
-        export_button = ttk.Button(frame, text="Export", command=self.export_vendor_report)
-        export_button.pack(pady=10)
+        export_button = ttk.Button(pagination_frame, text="Export", command=self.export_vendor_report).grid(row=0, column=2, padx=5)
+
 
         # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        home_button = ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
+
 
         # Display this frame
         self.show_frame(frame)
@@ -557,7 +573,7 @@ class AdminView:
         tree_frame.pack(fill="both", expand=True)
 
         # Define columns for the Treeview
-        columns = ("vendor_id", "vendor_name", "contact_fname", "contact_lname", "contact_email", "contact_phone", "is_active", "created_date")
+        columns = ("vendor_id","vendor_name","contact_fname","contact_lname","contact_email","contact_phone","address_key","is_active","created_date","created_by")
         self.vendor_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
 
         # Define column headings and set anchor to center
@@ -592,10 +608,27 @@ class AdminView:
         # Refresh the displayed page
         self.display_vendor_page(self.vendor_tree.master)
 
+
     def export_vendor_report(self):
-        # Export the vendor data to a CSV file
-        self.vendor_df.to_csv("vendor_report.csv", index=False)
-        print("Vendor report exported to 'vendor_report.csv'")
+        # Get the current timestamp to append to the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Define the file paths
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"Vendor_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export to both locations
+            self.vendor_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the material report: {str(e)}")
 
 
 #--------------------------------------------------------------------

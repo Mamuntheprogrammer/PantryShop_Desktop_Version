@@ -95,3 +95,33 @@ class VendorManager:
         finally:
             conn.close()
 
+
+
+
+
+    def get_all_vendors(self):
+        try:
+            # Connect to the database using the Database class
+            conn = self.connect()  # assuming you have a method in your Database class to connect
+            cursor = conn.cursor()
+
+            # SQL query to fetch all materials from the `materials` table
+            cursor.execute('''
+                SELECT vendor_id,vendor_name,contact_fname,contact_lname,
+                contact_email,contact_phone,address_key,is_active,created_date,created_by
+                FROM vendors
+            ''')
+
+            # Fetch all rows from the result
+            vendors = cursor.fetchall()
+
+            # Return the fetched materials
+            return {"success": True, "data": vendors}
+
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return {"success": False, "message": "An error occurred while fetching materials."}
+
+        finally:
+            # Ensure the connection is closed after the operation
+            conn.close()
