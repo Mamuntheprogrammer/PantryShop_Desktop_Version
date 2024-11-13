@@ -4,6 +4,8 @@ import pandas as pd  # Import pandas for exporting data
 from datetime import datetime,date
 from tkinter import messagebox,Tk, StringVar, IntVar
 from tkinter.simpledialog import askstring
+import tkinter.messagebox as MessageBox
+import os
 
 
 #----------- import session for id and role --------
@@ -188,7 +190,15 @@ class AdminView:
         self.show_frame(frame)
 
 
+    def fetch_material(self):
+        material_manager = MaterialManager()
+        material_data = material_manager.get_all_materials()
 
+        if material_data["success"]:
+            # print(material_data)
+            return material_data["data"]
+        else:
+            return []
 
 
 
@@ -204,14 +214,19 @@ class AdminView:
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Dummy data for material report (replace this with real data as needed)
-        material_data = [
-            {"material_id": i, "material_name": f"Material {i}", "material_type": "Type A" if i % 2 == 0 else "Type B",
-            "current_stock": 100 + i, "status": "Active" if i % 2 == 0 else "Inactive"}
-            for i in range(1, 31)  # 30 sample records
-        ]
+        # material_data = [
+        #     {"material_id": i, "material_name": f"Material {i}", "material_type": "Type A" if i % 2 == 0 else "Type B",
+        #     "current_stock": 100 + i, "status": "Active" if i % 2 == 0 else "Inactive"}
+        #     for i in range(1, 31)  # 30 sample records
+        # ]
         
+        material_data = self.fetch_material()
+  
+
+
         # Convert dummy data to DataFrame for pagination and export purposes
-        self.material_df = pd.DataFrame(material_data)
+        self.columns = ["material_id", "material_name", "material_type", "description", "current_stock", "status", "created_date", "created_by"]
+        self.material_df = pd.DataFrame(material_data,columns=self.columns)
 
         # Display the first 15 rows initially
         self.current_page = 0
@@ -246,7 +261,7 @@ class AdminView:
         tree_frame.pack(fill="both", expand=True)
 
         # Define columns for the Treeview
-        columns = ("material_id", "material_name", "material_type", "current_stock", "status")
+        columns = ("material_id", "material_name", "material_type","description", "current_stock", "status","created_date","created_by")
         self.material_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
 
         # Define column headings and set anchor to center
@@ -281,11 +296,29 @@ class AdminView:
         self.display_material_page(self.material_tree.master)
 
     def export_material_report(self):
-        # Export the material data to a CSV file
-        self.material_df.to_csv("material_report.csv", index=False)
-        print("Material report exported to 'material_report.csv'")
+            # Get the current timestamp to append to the filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Define the file paths
+            data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"material_report_{timestamp}.csv")
+
+            try:
+                # Ensure the Data folder exists, if not, create it
+                os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+                # Export to both locations
+                self.material_df.to_csv(data_folder_path, index=False)
+
+                # Show a message box indicating success
+                MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+            except Exception as e:
+                # Show error message if something goes wrong
+                MessageBox.showerror("Export Failed", f"An error occurred while exporting the material report: {str(e)}")
 
 
+
+# ------------------------------ 
 
 
     def show_create_material_type_frame(self):

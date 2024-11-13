@@ -88,3 +88,33 @@ class MaterialManager:
 
         finally:
             conn.close()
+
+
+# -------------------------------- Get Meterials Data -------------------------------
+
+
+    def get_all_materials(self):
+        try:
+            # Connect to the database using the Database class
+            conn = self.connect()  # assuming you have a method in your Database class to connect
+            cursor = conn.cursor()
+
+            # SQL query to fetch all materials from the `materials` table
+            cursor.execute('''
+                SELECT material_id, material_name, material_type,description,current_stock, status,created_date,created_by
+                FROM materials
+            ''')
+
+            # Fetch all rows from the result
+            materials = cursor.fetchall()
+
+            # Return the fetched materials
+            return {"success": True, "data": materials}
+
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return {"success": False, "message": "An error occurred while fetching materials."}
+
+        finally:
+            # Ensure the connection is closed after the operation
+            conn.close()
