@@ -14,6 +14,7 @@ from controllers import session
 
 from controllers.upfile_manager import UploadFileManager
 from controllers.material_manager import MaterialManager
+from controllers.vendor_manager import VendorManager  # Import VendorManager
 
 class AdminView:
     def __init__(self, root,show_login_screen_callback):
@@ -102,8 +103,11 @@ class AdminView:
 
         self.show_frame(welcome_frame)
 
+#--------------------------------------------------------------------
+# -------------------- Material Management Views --------------------
+#--------------------------------------------------------------------
 
-    # -------------------- Material Management Views --------------------
+#..... Material Menu  Frame-1 .....
 
     def show_upload_material_frame(self):
         # Clear any existing content and create a new frame
@@ -139,7 +143,7 @@ class AdminView:
         self.show_frame(frame)
 
 
-
+#..... Material Menu  Frame-2 .....
 
     def show_create_material_frame(self):
         # Create a new frame for the create material form
@@ -200,7 +204,7 @@ class AdminView:
         else:
             return []
 
-
+#..... Material Menu  Frame-3 .....
 
     def show_view_material_report_frame(self):
         # Create a new frame for the Material Report
@@ -295,31 +299,8 @@ class AdminView:
         # Refresh the displayed page
         self.display_material_page(self.material_tree.master)
 
-    def export_material_report(self):
-            # Get the current timestamp to append to the filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Define the file paths
-            data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"material_report_{timestamp}.csv")
-
-            try:
-                # Ensure the Data folder exists, if not, create it
-                os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
-
-                # Export to both locations
-                self.material_df.to_csv(data_folder_path, index=False)
-
-                # Show a message box indicating success
-                MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
-
-            except Exception as e:
-                # Show error message if something goes wrong
-                MessageBox.showerror("Export Failed", f"An error occurred while exporting the material report: {str(e)}")
-
-
-
-# ------------------------------ 
-
+#..... Material Menu  Frame-4 .....
 
     def show_create_material_type_frame(self):
         # Create a new frame for creating a material type
@@ -370,79 +351,155 @@ class AdminView:
         # Display this frame
         self.show_frame(frame)
 
-    # -------------------- Vendor Management Views --------------------
+#--------------------------------------------------------------------
+# -------------------- Vendor Management Views --------------------
+#--------------------------------------------------------------------
+
+#..... Vendor Menu  Frame-1 .....
+
+
     def show_add_vendor_frame(self):
-        # Create a new frame for adding a vendor
+        # Create a main frame for the Add or Edit Vendor view
         frame = ttk.Frame(self.content_frame)
+        frame.pack(fill="both", expand=True)
+        
+        # Title label
+        ttk.Label(frame, text="Add or Edit Vendor", font=("Helvetica", 16)).pack(pady=20)
+        
+        # Frame for loading vendor
+        load_vendor_frame = ttk.Frame(frame)
+        load_vendor_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Vendor ID field to load existing vendor data
+        ttk.Label(load_vendor_frame, text="Vendor ID (Enter to Edit Existing Vendor):").pack(side="left")
+        vendor_id_var = StringVar()
+        ttk.Entry(load_vendor_frame, textvariable=vendor_id_var).pack(side="left", padx=5)
+        ttk.Button(load_vendor_frame, text="Load Vendor", command=lambda: load_vendor(vendor_id_var)).pack(side="left", padx=5)
+        
+        # Vendor details frame for input fields
+        vendor_details_frame = ttk.LabelFrame(frame, text="Vendor Details", padding=(10, 10))
+        vendor_details_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Define variables for each vendor attribute
+        vendor_name_var = StringVar()
+        contact_fname_var = StringVar()
+        contact_lname_var = StringVar()
+        contact_email_var = StringVar()
+        contact_phone_var = StringVar()
+        address_key_var = StringVar()
+        is_active_var = tk.BooleanVar()
+        created_by_var = StringVar()
 
-        # Title for the frame
-        ttk.Label(frame, text="Add Vendor", font=("Helvetica", 16)).pack(pady=20)
+        # Vendor detail fields layout
+        fields = [
+            ("Vendor Name", vendor_name_var),
+            ("Contact First Name", contact_fname_var),
+            ("Contact Last Name", contact_lname_var),
+            ("Contact Email", contact_email_var),
+            ("Contact Phone", contact_phone_var),
+            ("Address Key", address_key_var),
+            ("Created By", created_by_var),
+        ]
 
-        # Frame for form fields
-        form_frame = ttk.Frame(frame)
-        form_frame.pack(pady=10)
+        # Populate the details section with labels and entry widgets
+        for i, (label_text, var) in enumerate(fields):
+            ttk.Label(vendor_details_frame, text=label_text + ":").grid(row=i, column=0, sticky="e", padx=5, pady=2)
+            ttk.Entry(vendor_details_frame, textvariable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
 
-        # Vendor ID
-        ttk.Label(form_frame, text="Vendor ID:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        self.vendor_id_entry = ttk.Entry(form_frame)
-        self.vendor_id_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        # Vendor Name
-        ttk.Label(form_frame, text="Vendor Name:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        self.vendor_name_entry = ttk.Entry(form_frame)
-        self.vendor_name_entry.grid(row=1, column=1, padx=5, pady=5)
+        ttk.Entry(vendor_details_frame, textvariable=created_by_var, state="readonly").grid(row=i, column=1, sticky="w", padx=5, pady=2)
 
-        # Contact First Name
-        ttk.Label(form_frame, text="Contact First Name:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        self.contact_fname_entry = ttk.Entry(form_frame)
-        self.contact_fname_entry.grid(row=2, column=1, padx=5, pady=5)
 
-        # Contact Last Name
-        ttk.Label(form_frame, text="Contact Last Name:").grid(row=3, column=0, sticky="w", padx=5, pady=5)
-        self.contact_lname_entry = ttk.Entry(form_frame)
-        self.contact_lname_entry.grid(row=3, column=1, padx=5, pady=5)
+        # Is Active checkbox
+        ttk.Checkbutton(vendor_details_frame, text="Is Active", variable=is_active_var).grid(row=len(fields), column=1, sticky="w", padx=5, pady=2)
 
-        # Contact Email
-        ttk.Label(form_frame, text="Contact Email:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
-        self.contact_email_entry = ttk.Entry(form_frame)
-        self.contact_email_entry.grid(row=4, column=1, padx=5, pady=5)
+        # Created Date field (read-only, auto-populated with current date)
+        created_date_var = StringVar(value=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        ttk.Label(vendor_details_frame, text="Created Date:").grid(row=len(fields) + 1, column=0, sticky="e", padx=5, pady=2)
+        ttk.Entry(vendor_details_frame, textvariable=created_date_var, state="readonly").grid(row=len(fields) + 1, column=1, sticky="w", padx=5, pady=2)
 
-        # Contact Phone
-        ttk.Label(form_frame, text="Contact Phone:").grid(row=5, column=0, sticky="w", padx=5, pady=5)
-        self.contact_phone_entry = ttk.Entry(form_frame)
-        self.contact_phone_entry.grid(row=5, column=1, padx=5, pady=5)
+        # Action buttons for Add and Update Vendor
+        actions_frame = ttk.Frame(frame)
+        actions_frame.pack(pady=10)
+        
+        ttk.Button(actions_frame, text="Add Vendor", command=lambda: add_vendor()).grid(row=0, column=0, padx=10)
+        ttk.Button(actions_frame, text="Update Vendor", command=lambda: update_vendor()).grid(row=0, column=1, padx=10)
+        ttk.Button(actions_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=2, padx=10)
 
-        # Address Key
-        ttk.Label(form_frame, text="Address Key:").grid(row=6, column=0, sticky="w", padx=5, pady=5)
-        self.address_key_entry = ttk.Entry(form_frame)
-        self.address_key_entry.grid(row=6, column=1, padx=5, pady=5)
+        # Initialize VendorManager
+        vendor_manager = VendorManager()
 
-        # Is Active (checkbox for boolean value)
-        self.is_active_var = tk.BooleanVar()
-        ttk.Checkbutton(form_frame, text="Is Active", variable=self.is_active_var).grid(row=7, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+        # Clear the entrys
+        def clear_vendor_fields():
+            vendor_name_var.set("")
+            contact_fname_var.set("")
+            contact_lname_var.set("")
+            contact_email_var.set("")
+            contact_phone_var.set("")
+            address_key_var.set("")
+            is_active_var.set(False)
+            created_by_var.set("")
+            created_date_var.set(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-        # Created Date (auto-populated with current date)
-        ttk.Label(form_frame, text="Created Date:").grid(row=8, column=0, sticky="w", padx=5, pady=5)
-        self.created_date_entry = ttk.Entry(form_frame)
-        self.created_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        self.created_date_entry.config(state="readonly")  # Read-only
-        self.created_date_entry.grid(row=8, column=1, padx=5, pady=5)
+        # Function to load existing vendor data
+        def load_vendor(vendor_id_var):
+            vendor_id = vendor_id_var.get()
+            if vendor_id.isdigit():
+                vendor_data = vendor_manager.load_vendor(vendor_id)
+                if vendor_data:
+                    vendor_name_var.set(vendor_data["vendor_name"])
+                    contact_fname_var.set(vendor_data["contact_fname"])
+                    contact_lname_var.set(vendor_data["contact_lname"])
+                    contact_email_var.set(vendor_data["contact_email"])
+                    contact_phone_var.set(vendor_data["contact_phone"])
+                    address_key_var.set(vendor_data["address_key"])
+                    is_active_var.set(vendor_data["is_active"])
+                    created_by_var.set(vendor_data["created_by"])
+                else:
+                    messagebox.showinfo("Vendor Not Found", f"No vendor found with ID {vendor_id}")
+            else:
+                messagebox.showwarning("Invalid ID", "Please enter a valid vendor ID.")
 
-        # Created By
-        ttk.Label(form_frame, text="Created By:").grid(row=9, column=0, sticky="w", padx=5, pady=5)
-        self.created_by_entry = ttk.Entry(form_frame)
-        self.created_by_entry.grid(row=9, column=1, padx=5, pady=5)
+        # Function to add a new vendor
+        def add_vendor():
+            new_vendor_data = {
+                "vendor_id": None,  # Automatically generated in most cases
+                "vendor_name": vendor_name_var.get(),
+                "contact_fname": contact_fname_var.get(),
+                "contact_lname": contact_lname_var.get(),
+                "contact_email": contact_email_var.get(),
+                "contact_phone": contact_phone_var.get(),
+                "address_key": address_key_var.get(),
+                "is_active": is_active_var.get(),
+                "created_by": session.user_id,
+            }
+            vendor_manager.add_vendor(new_vendor_data)
+            clear_vendor_fields()
 
-        # Add Vendor button
-        add_vendor_button = ttk.Button(frame, text="Add Vendor", command=self.add_vendor)
-        add_vendor_button.pack(pady=10)
-
-        # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        # Function to update existing vendor data
+        def update_vendor():
+            vendor_id = vendor_id_var.get()
+            if vendor_id and vendor_id.isdigit():
+                updated_vendor_data = {
+                    "vendor_name": vendor_name_var.get(),
+                    "contact_fname": contact_fname_var.get(),
+                    "contact_lname": contact_lname_var.get(),
+                    "contact_email": contact_email_var.get(),
+                    "contact_phone": contact_phone_var.get(),
+                    "address_key": address_key_var.get(),
+                    "is_active": is_active_var.get(),
+                    "created_by": created_by_var.get(),
+                }
+                vendor_manager.update_vendor(vendor_id, updated_vendor_data)
+                clear_vendor_fields()
+            else:
+                messagebox.showwarning("Update Error", "Please load a valid vendor to update.")
 
         # Display this frame
         self.show_frame(frame)
+
+
+#..... Vendor Menu  Frame-2 .....
 
     def show_vendor_report_frame(self):
         # Create a new frame for the Vendor Report
@@ -540,7 +597,15 @@ class AdminView:
         self.vendor_df.to_csv("vendor_report.csv", index=False)
         print("Vendor report exported to 'vendor_report.csv'")
 
-    # -------------------- Stock Management Views --------------------
+
+#--------------------------------------------------------------------
+# -------------------- Stock Management Views --------------------
+#--------------------------------------------------------------------
+
+
+#..... Stock Menu  Frame-1 .....
+
+
     def show_upload_stock_frame(self):
         # Clear any existing content and create a new frame
         frame = ttk.Frame(self.content_frame)
@@ -574,7 +639,7 @@ class AdminView:
         self.show_frame(frame)
 
 
-
+#..... Stock Menu  Frame-2 .....
 
     def show_update_stock_frame(self):
         # Create a new frame for updating stock
@@ -744,7 +809,7 @@ class AdminView:
         self.status_entry.delete(0, tk.END)
 
 
-
+#..... Stock Menu  Frame-3 .....
 
 
     def show_stock_report_frame(self):
@@ -844,16 +909,11 @@ class AdminView:
 
 
 
+#--------------------------------------------------------------------
+# -------------------- Order Management Views --------------------
+#--------------------------------------------------------------------
 
-    # -------------------- Order Management Views --------------------
-
-
-    # def show_manage_order_frame(self):
-    #     frame = ttk.Frame(self.content_frame)
-    #     ttk.Label(frame, text="manage Order", font=("Helvetica", 16)).pack(pady=20) 
-    #     ttk.Button(frame, text="Manage Order", command=self.manage_order).pack() 
-    #     self.show_frame(frame)
-
+#..... Order Menu  Frame-1 .....
 
     def show_manage_order_frame(self):
         # Create a new frame for managing orders
@@ -1032,7 +1092,7 @@ class AdminView:
 
 
 
-#-------------
+#..... Order Menu  Frame-2 .....
 
 
     def show_order_report_frame(self):
@@ -1128,9 +1188,12 @@ class AdminView:
         self.order_df.to_csv("order_report.csv", index=False)
         messagebox.showinfo("Export Successful", "Order report exported to 'order_report.csv'")
 
+#--------------------------------------------------------------------
+# -------------------- User Management Views --------------------
+#--------------------------------------------------------------------
 
-    # -------------------- User Management Views --------------------
-    
+#..... User Menu  Frame-1 .....
+
     def show_add_user_frame(self):
         # Create a main frame for the Add User view
         frame = ttk.Frame(self.content_frame)
@@ -1276,6 +1339,8 @@ class AdminView:
         self.show_frame(frame)
 
 
+#..... User Menu  Frame-2 .....
+
     def show_user_list_frame(self):
         # Create a new frame for the User List
         frame = ttk.Frame(self.content_frame)
@@ -1372,11 +1437,18 @@ class AdminView:
         print("User report exported to 'user_report.csv'")
 
 
-    # -------------------- Action Methods --------------------
-    # (Action methods as defined in your initial code...)
 
 
-#----------------------------------------- Upload Material Done --------------------
+
+
+
+# -------------------- Action Methods -------------------------------
+# (Action methods as defined in your initial code...)
+#--------------------------------------------------------------------
+
+
+#--------------------------- Upload Material Done --------------------
+
 
     def upload_material(self):
         # Get the file path from the entry field
@@ -1441,9 +1513,29 @@ class AdminView:
         else:
             messagebox.showerror("Error", result["message"])
 
-#----------------------------- Pending -----------------------------
-    def view_material_report(self):
-        print("Viewing Material Report")
+#----------------------------- Export Materials to csv -----------------------------
+    def export_material_report(self):
+        # Get the current timestamp to append to the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Define the file paths
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"material_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export to both locations
+            self.material_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the material report: {str(e)}")
+
+
 
 
 #----------------------------------------- Material Type creation Done ------------------------------
