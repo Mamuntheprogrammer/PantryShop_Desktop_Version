@@ -1,7 +1,13 @@
 import tkinter as tk
-from tkinter import ttk,messagebox,simpledialog
+from tkinter import ttk,simpledialog
+from tkinter import messagebox,Tk, StringVar, IntVar,BooleanVar
 from datetime import datetime
+from controllers import session
 
+
+# -------------import controllers ---------
+
+from controllers import user_manager2
 
 class UserView:
     def __init__(self, root, return_to_login):
@@ -14,19 +20,6 @@ class UserView:
         self.orders = {}
         self.order_counter = 1
         self.line_items_tree = None
-
-        # Sample user data (these variables should be initialized with actual data in your code)
-        self.username_var = tk.StringVar(value="john_doe")
-        self.first_name_var = tk.StringVar(value="John")
-        self.last_name_var = tk.StringVar(value="Doe")
-        self.email_var = tk.StringVar(value="john.doe@example.com")
-        self.user_type_var = tk.StringVar(value="Admin")
-        self.departname_var = tk.StringVar(value="Sales")
-        self.phone_var = tk.StringVar(value="123-456-7890")
-        self.age_var = tk.StringVar(value="30")
-        self.max_hour_var = tk.StringVar(value="40")
-        self.reference_var = tk.StringVar(value="HR")
-        self.student_status_var = tk.StringVar(value="Graduate")
 
         # Show the initial user home with a welcome message
         self.show_user_home()
@@ -72,6 +65,9 @@ class UserView:
         ttk.Label(frame, text="Please use the menu to navigate.", font=("Helvetica", 12)).pack(pady=10)
         self.show_frame(frame)
 
+
+#  show view Profile 
+
     def show_view_profile(self):
         frame = ttk.Frame(self.root)
         
@@ -82,28 +78,37 @@ class UserView:
         profile_frame = ttk.Frame(frame)
         profile_frame.pack(pady=10)
 
-        # Define the fields to be displayed (assuming these variables are already defined somewhere in your code)
+        user_manager = user_manager2.UserManager2()
+        self.user_data = user_manager.load_user(session.user_id)
+        # print(self.user_data)
+
+        # Define the user fields and map them to user data keys from the loaded dictionary
         fields = [
-            ("Username", self.username_var),
-            ("First Name", self.first_name_var),
-            ("Last Name", self.last_name_var),
-            ("Email", self.email_var),
-            ("User Type", self.user_type_var),
-            ("Department", self.departname_var),
-            ("Phone", self.phone_var),
-            ("Age", self.age_var),
-            ("Max Hour", self.max_hour_var),
-            ("Reference", self.reference_var),
-            ("Student Status", self.student_status_var),
+           ("User ID", self.user_data["user_id"]),
+            ("First Name", self.user_data["first_name"]),
+            ("Last Name", self.user_data["last_name"]),
+            ("Email Address", self.user_data["email_address"]),
+            ("Password", self.user_data["password"]),
+            ("Mobile Number", self.user_data["mobile_number"]),
+            ("Fulltime", self.user_data["fulltime"]),
+            ("Parttime", self.user_data["parttime"]),
+            ("Undergraduate", self.user_data["undergraduate"]),
+            ("Graduate", self.user_data["graduate"]),
+            ("Already Graduate", self.user_data["already_graduate"]),
+            ("Work Per Week", self.user_data["work_per_week"]),
+            ("Age Group", self.user_data["age_group"]),
+            ("Is Active", self.user_data["is_active"]),
+            ("Role Type", self.user_data["role_type"]),
+            ("Created Date", self.user_data["created_date"]),
         ]
         
         # Loop through the fields and display them in a vertical list
-        for label_text, var in fields:
+        for label_text, value in fields:
             field_frame = ttk.Frame(profile_frame)
             field_frame.pack(fill="x", pady=5)
             
             ttk.Label(field_frame, text=f"{label_text}:", font=("Helvetica", 12), anchor="w", width=15).pack(side="left", padx=10)
-            ttk.Label(field_frame, text=var.get(), font=("Helvetica", 12), relief="sunken", width=30).pack(side="left", padx=10)
+            ttk.Label(field_frame, text=value, font=("Helvetica", 12), relief="sunken", width=30).pack(side="left", padx=10)
         
         # Add a back button to return to home screen
         back_button = ttk.Button(frame, text="Back", command=self.show_user_home)
@@ -113,9 +118,10 @@ class UserView:
 
 
 
+
     def show_update_profile(self):
         frame = ttk.Frame(self.root)
-        
+   
         # Title label
         ttk.Label(frame, text="Update Profile", font=("Helvetica", 16, "bold")).pack(pady=20)
         
@@ -123,19 +129,23 @@ class UserView:
         update_frame = ttk.Frame(frame)
         update_frame.pack(pady=10)
 
-        # Define the fields to be updated (use the existing Tkinter variables that hold the current data)
+        user_manager = user_manager2.UserManager2()
+        self.user_data = user_manager.load_user(session.user_id)
+        if self.user_data:
+            # Initializing StringVar with the existing user data
+            self.first_name_var = StringVar(value=self.user_data["first_name"])
+            self.last_name_var = StringVar(value=self.user_data["last_name"])
+            self.email_address_var = StringVar(value=self.user_data["email_address"])
+            self.password_var = StringVar(value=self.user_data["password"])
+            self.mobile_number_var = StringVar(value=self.user_data["mobile_number"])
+
+        # Define the fields to be updated
         fields = [
-            ("Username", self.username_var),
             ("First Name", self.first_name_var),
             ("Last Name", self.last_name_var),
-            ("Email", self.email_var),
-            ("User Type", self.user_type_var),
-            ("Department", self.departname_var),
-            ("Phone", self.phone_var),
-            ("Age", self.age_var),
-            ("Max Hour", self.max_hour_var),
-            ("Reference", self.reference_var),
-            ("Student Status", self.student_status_var),
+            ("Email Address", self.email_address_var),
+            ("Password", self.password_var),
+            ("Mobile Number", self.mobile_number_var),
         ]
 
         # Loop through the fields and create entry widgets for each field
@@ -148,43 +158,47 @@ class UserView:
             entry.pack(side="left", padx=10)
 
         # Button to save the updated profile information
-        save_button = ttk.Button(frame, text="Save Changes", command=self.save_profile_changes)
+        save_button = ttk.Button(frame, text="Update Profile", command=self.save_profile_changes)
         save_button.pack(pady=20)
 
         # Button to cancel and go back to the profile view
-        cancel_button = ttk.Button(frame, text="Cancel", command=self.show_view_profile)
+        cancel_button = ttk.Button(frame, text="Home", command=self.show_user_home)
         cancel_button.pack(pady=10)
 
         self.show_frame(frame)
 
     def save_profile_changes(self):
-        # Here you can add code to save the updated data to the database or wherever needed.
-        # For now, let's just print the updated values as an example.
-        print("Updated Profile Information:")
-        print(f"Username: {self.username_var.get()}")
-        print(f"First Name: {self.first_name_var.get()}")
-        print(f"Last Name: {self.last_name_var.get()}")
-        print(f"Email: {self.email_var.get()}")
-        print(f"User Type: {self.user_type_var.get()}")
-        print(f"Department: {self.departname_var.get()}")
-        print(f"Phone: {self.phone_var.get()}")
-        print(f"Age: {self.age_var.get()}")
-        print(f"Max Hour: {self.max_hour_var.get()}")
-        print(f"Reference: {self.reference_var.get()}")
-        print(f"Student Status: {self.student_status_var.get()}")
+        updated_user_data = {
+            "first_name": self.first_name_var.get(),
+            "last_name": self.last_name_var.get(),
+            "email_address": self.email_address_var.get(),
+            "password": self.password_var.get(),
+            "mobile_number": self.mobile_number_var.get(),
+        }
+        
+        user_manager = user_manager2.UserManager2()  # Create an instance of the class
+        update_result = user_manager.update_user(session.user_id, updated_user_data)  # Call the update_user method
 
-        # You can also include additional logic to handle saving the updated profile information
-        # into a database or API.
-        
-        # Optionally, show a success message after saving
-        success_message = "Profile updated successfully!"
-        success_label = ttk.Label(self.root, text=success_message, font=("Helvetica", 12), foreground="green")
-        success_label.pack(pady=10)
-        
-        # Remove the success message after 2 seconds
-        self.root.after(2000, success_label.destroy)  # 2000 milliseconds = 2 seconds
-        
-        self.show_view_profile()  # Redirect back to view profile after saving changes
+        if update_result["success"]:
+            # Optionally, show a success message after saving
+            success_message = "Profile updated successfully!"
+            success_label = ttk.Label(self.root, text=success_message, font=("Helvetica", 12), foreground="green")
+            success_label.pack(pady=10)
+
+            # Remove the success message after 2 seconds
+            self.root.after(2000, success_label.destroy)  # 2000 milliseconds = 2 seconds
+            
+            # Redirect back to view profile after saving changes
+            self.show_user_home()
+
+
+
+
+
+
+
+# ------------------------------------------- order Frames ----------------------------------------------
+
 
 
     def show_create_order(self):
