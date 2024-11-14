@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import pandas as pd  # Import pandas for exporting data
 from datetime import datetime,date
-from tkinter import messagebox,Tk, StringVar, IntVar
+from tkinter import messagebox,Tk, StringVar, IntVar,BooleanVar
 from tkinter.simpledialog import askstring
 import tkinter.messagebox as MessageBox
 import os
@@ -15,6 +15,7 @@ from controllers import session
 from controllers.upfile_manager import UploadFileManager
 from controllers.material_manager import MaterialManager
 from controllers.vendor_manager import VendorManager  # Import VendorManager
+from controllers.user_manager import UserManager
 
 class AdminView:
     def __init__(self, root,show_login_screen_callback):
@@ -1388,37 +1389,61 @@ class AdminView:
         user_details_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Define variables for each user attribute
-        username_var = StringVar()
         first_name_var = StringVar()
         last_name_var = StringVar()
-        email_var = StringVar()
-        user_type_var = StringVar()
-        departname_var = StringVar()
-        phone_var = StringVar()
-        age_var = IntVar()
-        max_hour_var = IntVar()
-        reference_var = StringVar()
-        student_status_var = StringVar()
+        email_address_var = StringVar()
+        password_var = StringVar()
+        mobile_number_var = StringVar()
+        fulltime_var = BooleanVar()
+        parttime_var = BooleanVar()
+        undergraduate_var = BooleanVar()
+        graduate_var = BooleanVar()
+        already_graduate_var = BooleanVar()
+        work_per_week_var = IntVar()
+        age_group_var = IntVar()
+        is_active_var = BooleanVar()
+        role_type_var = StringVar()
 
         # User detail fields layout
         fields = [
-            ("Username", username_var),
             ("First Name", first_name_var),
             ("Last Name", last_name_var),
-            ("Email", email_var),
-            ("User Type", user_type_var),
-            ("Department", departname_var),
-            ("Phone", phone_var),
-            ("Age", age_var),
-            ("Max Hour", max_hour_var),
-            ("Reference", reference_var),
-            ("Student Status", student_status_var),
+            ("Email Address", email_address_var),
+            ("Password", password_var),
+            ("Mobile Number", mobile_number_var),
+            ("Full-Time", fulltime_var),
+            ("Part-Time", parttime_var),
+            ("Undergraduate", undergraduate_var),
+            ("Graduate", graduate_var),
+            ("Already Graduated", already_graduate_var),
+            ("Work per Week", work_per_week_var),
+            ("Age Group", age_group_var),
+            ("Active", is_active_var),
+            ("Role Type", role_type_var),
         ]
 
         # Populate the details section with labels and entry widgets
         for i, (label_text, var) in enumerate(fields):
             ttk.Label(user_details_frame, text=label_text + ":").grid(row=i, column=0, sticky="e", padx=5, pady=2)
-            ttk.Entry(user_details_frame, textvariable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
+
+            if isinstance(var, BooleanVar):
+                # If the variable is a BooleanVar, create a Checkbutton
+                ttk.Checkbutton(user_details_frame, variable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
+            elif isinstance(var, IntVar):
+                # If the variable is an IntVar, create an Entry for numbers
+                ttk.Entry(user_details_frame, textvariable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
+            elif label_text == "Role Type":
+                # For Role Type, create a Combobox for selection between User and Admin
+                role_type_combobox = ttk.Combobox(user_details_frame, textvariable=var, values=["User", "Admin"], state="readonly")
+                role_type_combobox.grid(row=i, column=1, sticky="w", padx=5, pady=2)
+                role_type_combobox.set("User")  # Default value can be 'User' or 'Admin'
+            else:
+                # Default case for all other fields, create a simple Entry widget
+                ttk.Entry(user_details_frame, textvariable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
+
+
+
+
 
         # Action buttons for Add and Update User
         actions_frame = ttk.Frame(frame)
@@ -1427,38 +1452,57 @@ class AdminView:
         ttk.Button(actions_frame, text="Add User", command=lambda: add_user()).grid(row=0, column=0, padx=10)
         ttk.Button(actions_frame, text="Update User", command=lambda: update_user()).grid(row=0, column=1, padx=10)
         
+
+        def clear_user_details():
+            """Clears the values of the user detail fields."""
+            # Reset all the fields to their default values
+            user_id_var.set("")
+            first_name_var.set("")
+            last_name_var.set("")
+            email_address_var.set("")
+            password_var.set("")
+            mobile_number_var.set("")
+            fulltime_var.set(False)
+            parttime_var.set(False)
+            undergraduate_var.set(False)
+            graduate_var.set(False)
+            already_graduate_var.set(False)
+            work_per_week_var.set(0)
+            age_group_var.set(0)
+            is_active_var.set(False)
+            role_type_var.set("")
+
+
+
+
         # Function to load existing user data
         def load_user(user_id_var):
             user_id = user_id_var.get()
-            if user_id and user_id.isdigit():
+            if user_id.isdigit():
                 user_id = int(user_id)
-                
-                # Load data for testing purposes (use actual data loading in real app)
-                dummy_data = {
-                    1: {"user_id": 1, "username": "john_doe", "first_name": "John", "last_name": "Doe", 
-                        "email": "john@example.com", "user_type": "student", "departname": "Computer Science", 
-                        "phone": "1234567890", "age": 22, "max_hour": 40, "reference": "Prof. Smith", 
-                        "student_status": "Active"},
-                    2: {"user_id": 2, "username": "jane_doe", "first_name": "Jane", "last_name": "Doe", 
-                        "email": "jane@example.com", "user_type": "staff", "departname": "Mathematics", 
-                        "phone": "0987654321", "age": 30, "max_hour": 35, "reference": "Prof. Johnson", 
-                        "student_status": "Inactive"},
-                    # Add more dummy users as needed
-                }
-                
-                if user_id in dummy_data:
-                    user_data = dummy_data[user_id]
-                    username_var.set(user_data["username"])
+                # Retrieve user data from the database (replace with actual data loading)
+                # Here would be the call to UserManager to retrieve user data
+                print(user_id)
+                user_manager = UserManager()  # Create an instance of the class
+                user_data = user_manager.load_user(user_id)  # Call load_user on the instance
+                # Populate data in the fields if found
+                print(user_data)
+                # user_data = dummy_data.get(user_id, None)
+                if user_data:
                     first_name_var.set(user_data["first_name"])
                     last_name_var.set(user_data["last_name"])
-                    email_var.set(user_data["email"])
-                    user_type_var.set(user_data["user_type"])
-                    departname_var.set(user_data["departname"])
-                    phone_var.set(user_data["phone"])
-                    age_var.set(user_data["age"])
-                    max_hour_var.set(user_data["max_hour"])
-                    reference_var.set(user_data["reference"])
-                    student_status_var.set(user_data["student_status"])
+                    email_address_var.set(user_data["email_address"])
+                    password_var.set(user_data["password"])
+                    mobile_number_var.set(user_data["mobile_number"])
+                    fulltime_var.set(user_data["fulltime"])
+                    parttime_var.set(user_data["parttime"])
+                    undergraduate_var.set(user_data["undergraduate"])
+                    graduate_var.set(user_data["graduate"])
+                    already_graduate_var.set(user_data["already_graduate"])
+                    work_per_week_var.set(user_data["work_per_week"])
+                    age_group_var.set(user_data["age_group"])
+                    is_active_var.set(user_data["is_active"])
+                    role_type_var.set(user_data["role_type"])
                 else:
                     messagebox.showinfo("User Not Found", f"No user found with ID {user_id}")
             else:
@@ -1466,48 +1510,57 @@ class AdminView:
 
         # Function to add a new user
         def add_user():
-            # Collect user details and print or process them (use actual saving in real app)
             new_user_data = {
-                "username": username_var.get(),
                 "first_name": first_name_var.get(),
                 "last_name": last_name_var.get(),
-                "email": email_var.get(),
-                "user_type": user_type_var.get(),
-                "departname": departname_var.get(),
-                "phone": phone_var.get(),
-                "age": age_var.get(),
-                "max_hour": max_hour_var.get(),
-                "reference": reference_var.get(),
-                "student_status": student_status_var.get(),
+                "email_address": email_address_var.get(),
+                "password": password_var.get(),
+                "mobile_number": mobile_number_var.get(),
+                "fulltime": fulltime_var.get(),
+                "parttime": parttime_var.get(),
+                "undergraduate": undergraduate_var.get(),
+                "graduate": graduate_var.get(),
+                "already_graduate": already_graduate_var.get(),
+                "work_per_week": work_per_week_var.get(),
+                "age_group": age_group_var.get(),
+                "is_active": is_active_var.get(),
+                "role_type": role_type_var.get(),
             }
-            print("New user data:", new_user_data)
-            messagebox.showinfo("User Added", "New user has been successfully added.")
+
+            user_manager = UserManager()  # Create an instance of the class
+            user_manager.add_user(new_user_data)  # Call load_user on the instance
+            clear_user_details()
 
         # Function to update existing user data
         def update_user():
             user_id = user_id_var.get()
-            if user_id and user_id.isdigit():
-                # Collect and print updated user data (use actual updating in real app)
+            if user_id.isdigit():
                 updated_user_data = {
-                    "username": username_var.get(),
                     "first_name": first_name_var.get(),
                     "last_name": last_name_var.get(),
-                    "email": email_var.get(),
-                    "user_type": user_type_var.get(),
-                    "departname": departname_var.get(),
-                    "phone": phone_var.get(),
-                    "age": age_var.get(),
-                    "max_hour": max_hour_var.get(),
-                    "reference": reference_var.get(),
-                    "student_status": student_status_var.get(),
+                    "email_address": email_address_var.get(),
+                    "password": password_var.get(),
+                    "mobile_number": mobile_number_var.get(),
+                    "fulltime": fulltime_var.get(),
+                    "parttime": parttime_var.get(),
+                    "undergraduate": undergraduate_var.get(),
+                    "graduate": graduate_var.get(),
+                    "already_graduate": already_graduate_var.get(),
+                    "work_per_week": work_per_week_var.get(),
+                    "age_group": age_group_var.get(),
+                    "is_active": is_active_var.get(),
+                    "role_type": role_type_var.get(),
                 }
-                print("Updated user data:", updated_user_data)
-                messagebox.showinfo("User Updated", "User has been successfully updated.")
+                user_manager = UserManager()  # Create an instance of the class
+                user_manager.update_user(user_id,updated_user_data)  # Call load_user on the instance
+                clear_user_details()
             else:
                 messagebox.showwarning("Update Error", "Please load a valid user to update.")
 
+
         # Display this frame
         self.show_frame(frame)
+
 
 
 #..... User Menu  Frame-2 .....
@@ -1523,17 +1576,20 @@ class AdminView:
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Dummy data for user list (replace this with real data as needed)
-        user_data = [
-            {"user_id": i, "username": f"user_{i}", "first_name": f"First {i}", "last_name": f"Last {i}",
-            "email": f"user{i}@example.com", "user_type": "student" if i % 2 == 0 else "teacher",
-            "departname": "Computer Science", "phone": f"12345678{i}", "age": 20 + (i % 5), 
-            "max_hour": 40, "reference": f"Prof. {i}", "student_status": "Active" if i % 2 == 0 else "Inactive"}
-            for i in range(1, 31)  # 30 sample records
-        ]
+        # Fetch user data from database
+        user_manger = UserManager()
+        user_data = user_manger.get_all_users()
 
-        # Convert dummy data to DataFrame for pagination and export purposes
-        self.user_df = pd.DataFrame(user_data)
+        print(user_data)
+          # Replace with actual database fetch method
+
+        # Convert fetched data to DataFrame for pagination and export purposes
+        self.columns = [
+            "user_id", "first_name", "last_name", "email_address",
+            "mobile_number", "fulltime", "parttime", "undergraduate", "graduate",
+            "already_graduate", "work_per_week", "age_group", "is_active", "role_type", "created_date"
+        ]
+        self.user2_df = pd.DataFrame(user_data["data"], columns=self.columns)
 
         # Display the first 15 rows initially
         self.current_page = 0
@@ -1548,12 +1604,10 @@ class AdminView:
         ttk.Button(pagination_frame, text="Next", command=lambda: self.change_user_page(1)).grid(row=0, column=1, padx=5)
 
         # Export button
-        export_button = ttk.Button(frame, text="Export", command=self.export_user_report)
-        export_button.pack(pady=10)
+        ttk.Button(pagination_frame, text="Export", command=self.export_user_report).grid(row=0, column=2, padx=5)
 
         # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
+        ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
 
         # Display this frame
         self.show_frame(frame)
@@ -1568,7 +1622,9 @@ class AdminView:
         tree_frame.pack(fill="both", expand=True)
 
         # Define columns for the Treeview
-        columns = ("user_id", "username", "first_name", "last_name", "email", "user_type", "departname", "phone", "age", "max_hour", "reference", "student_status")
+        columns = ("user_id", "first_name", "last_name", "email_address",
+            "mobile_number", "fulltime", "parttime", "undergraduate", "graduate",
+            "already_graduate", "work_per_week", "age_group", "is_active", "role_type", "created_date")
         self.user_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
 
         # Define column headings and set anchor to center
@@ -1591,7 +1647,7 @@ class AdminView:
         # Load the current page of user data
         start_idx = self.current_page * self.page_size
         end_idx = start_idx + self.page_size
-        for _, row in self.user_df.iloc[start_idx:end_idx].iterrows():
+        for _, row in self.user2_df.iloc[start_idx:end_idx].iterrows():
             self.user_tree.insert("", "end", values=list(row))
 
     def change_user_page(self, direction):
@@ -1604,8 +1660,23 @@ class AdminView:
 
     def export_user_report(self):
         # Export the user data to a CSV file
-        self.user_df.to_csv("user_report.csv", index=False)
-        print("User report exported to 'user_report.csv'")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"User_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export the data to CSV
+            self.user2_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the User report: {str(e)}")
+
 
 
 
