@@ -43,7 +43,7 @@ class Database:
 
         # Create Orders Table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS orders (
-                                order_id INTEGER PRIMARY KEY,
+                                order_id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 user_id INTEGER,
                                 order_date TEXT,
                                 pickup_date TEXT,

@@ -3,13 +3,16 @@ from tkinter import ttk,simpledialog
 from tkinter import messagebox,Tk, StringVar, IntVar,BooleanVar
 from datetime import datetime
 from controllers import session
+from tkcalendar import DateEntry
 
 
 # -------------import controllers ---------
 
 from controllers import user_manager2
+from controllers.order_manager import OrderManager
 
 class UserView:
+    
     def __init__(self, root, return_to_login):
         self.root = root
         self.return_to_login = return_to_login
@@ -40,7 +43,7 @@ class UserView:
         # Manage Order menu
         manage_order_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
         manage_order_menu.add_command(label="Create Order", command=self.show_create_order)
-        manage_order_menu.add_command(label="View and Edit Order", command=self.show_manage_order)
+        manage_order_menu.add_command(label="View Orders", command=self.show_orders)
         menu_bar.add_cascade(label="Manage Order", menu=manage_order_menu)
 
         # Logout option in the menu
@@ -223,27 +226,27 @@ class UserView:
         ttk.Label(product_frame, text="Products", font=("Helvetica", 14)).pack(pady=10)
 
         # Product Treeview with Horizontal Scrollbar
-        columns = ("name", "price")
+        columns = ("name", "stock")
         product_tree = ttk.Treeview(product_frame, columns=columns, show="headings")
         product_tree.heading("name", text="Product Name")
-        product_tree.heading("price", text="Price ($)")
+        product_tree.heading("stock", text="Stock")
         product_tree.column("name", anchor="w", width=150)
-        product_tree.column("price", anchor="center", width=50)
+        product_tree.column("stock", anchor="center", width=50)
 
         product_scrollbar = ttk.Scrollbar(product_frame, orient="horizontal", command=product_tree.xview)
         product_tree.configure(xscrollcommand=product_scrollbar.set)
         product_tree.pack(fill="both", expand=True)
         product_scrollbar.pack(fill="x")
 
-        # Sample list of products
-        products = [
-            {"name": "Product 1", "price": 10},
-            {"name": "Product 2", "price": 15},
-            {"name": "Product 3", "price": 20}
-        ]
+        order_manager = OrderManager()
+
+        data = order_manager.get_all_materials()
+        products = data["data"]
+
+    
 
         for product in products:
-            product_tree.insert("", "end", values=(product["name"], product["price"]))
+            product_tree.insert("", "end", values=(product[0], product[1]))
 
         # Add button at the bottom of the product frame
         add_button = ttk.Button(product_frame, text="Add Selected Product", command=lambda: self.add_selected_to_cart(product_tree))
@@ -259,16 +262,17 @@ class UserView:
         self.update_order_frame()
 
         # Fixed Order Details (Address and Note) and Submit Button
-        self.address_var = tk.StringVar()
+        self.pickup_var = tk.StringVar()
         self.note_var = tk.StringVar()
 
         # Frame for Address, Note, and Submit Button at the bottom of order_frame
         details_frame = ttk.Frame(self.order_frame, padding=10)
         details_frame.grid(row=20, column=0, columnspan=3, sticky="ew", pady=10)
 
-        ttk.Label(details_frame, text="Address:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-        address_entry = ttk.Entry(details_frame, textvariable=self.address_var, width=30)
-        address_entry.grid(row=0, column=1, padx=5, pady=5)
+         # DateEntry (date picker)
+        ttk.Label(details_frame, text="PickUp Date:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        pickup_entry = DateEntry(details_frame, textvariable=self.pickup_var, width=30, date_pattern='yyyy-mm-dd')
+        pickup_entry.grid(row=0, column=1, padx=5, pady=5)
 
         ttk.Label(details_frame, text="Note:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
         note_entry = ttk.Entry(details_frame, textvariable=self.note_var, width=30)
@@ -280,7 +284,8 @@ class UserView:
         self.show_frame(frame)
 
     def update_order_frame(self):
-        print("Updating Order Frame with Cart:", self.cart)
+        pass
+        # print("Updating Order Frame with Cart:", self.cart)
 
         """Update the order summary frame."""
         # Clear all widgets in the order frame except the header and footer.
@@ -315,53 +320,10 @@ class UserView:
 
             row += 1
 
-        # Calculate and display the total cost
-        total_cost = sum(details["price"] * details["quantity"] for details in self.cart.values())
-        ttk.Label(self.order_frame, text=f"Total: ${total_cost:.2f}", font=("Helvetica", 12, "bold")).grid(row=row, column=0, columnspan=3, pady=10)
+        # # Calculate and display the total cost
+        # total_cost = sum(details["stock"] * details["quantity"] for details in self.cart.values())
+        # ttk.Label(self.order_frame, text=f"Total: ${total_cost:.2f}", font=("Helvetica", 12, "bold")).grid(row=row, column=0, columnspan=3, pady=10)
 
-
-    def show_manage_order(self):
-        """Display the Manage Orders screen."""
-        # self.clear_screen()  # Clear current screen
-        self.current_view = "manage_order"
-
-        # Main frame for managing orders
-        frame = ttk.Frame(self.root)
-        frame.pack(fill="both", expand=True)
-
-        # Label for Orders Frame
-        ttk.Label(frame, text="Manage Orders", font=("Helvetica", 14)).pack(pady=10)
-
-        # Order Treeview with options to Edit, View, Delete
-        columns = ("order_id", "address", "status")
-        order_tree = ttk.Treeview(frame, columns=columns, show="headings")
-        order_tree.heading("order_id", text="Order ID")
-        order_tree.heading("address", text="Address")
-        order_tree.heading("status", text="Status")
-        order_tree.column("order_id", anchor="center", width=100)
-        order_tree.column("address", anchor="w", width=200)
-        order_tree.column("status", anchor="center", width=100)
-
-        order_tree.pack(fill="both", expand=True)
-
-        # Display orders
-        for order_id, details in self.orders.items():
-            order_tree.insert("", "end", values=(order_id, details["address"], details["status"]))
-
-        # Buttons for manage orders
-        manage_buttons_frame = ttk.Frame(frame)
-        manage_buttons_frame.pack(fill="x", pady=10)
-
-        # View, Edit, Delete buttons
-        view_button = ttk.Button(manage_buttons_frame, text="View Order", command=lambda: self.view_order(order_tree))
-        view_button.pack(side="left", padx=10)
-
-        edit_button = ttk.Button(manage_buttons_frame, text="Edit Order", command=lambda: self.edit_order(order_tree))
-        edit_button.pack(side="left", padx=10)
-
-        delete_button = ttk.Button(manage_buttons_frame, text="Delete Order", command=lambda: self.delete_order(order_tree))
-        delete_button.pack(side="left", padx=10)
-        self.show_frame(frame)
 
     def clear_screen(self):
         """Clears the current screen to show a new view."""
@@ -372,13 +334,13 @@ class UserView:
         selected_item = product_tree.selection()
         if selected_item:
             item = product_tree.item(selected_item, "values")
-            product_name, product_price = item[0], float(item[1])
+            product_name= item[0]
             
             # Add or update product in cart
             if product_name in self.cart:
                 self.cart[product_name]["quantity"] += 1
             else:
-                self.cart[product_name] = {"price": product_price, "quantity": 1}
+                self.cart[product_name] = {"quantity": 1}
                 
             self.update_order_frame()
 
@@ -403,210 +365,165 @@ class UserView:
         self.update_order_frame()
 
 
-    def show_create_or_edit_order(self, order_id=None):
-        """Display the Create or Edit Order screen."""
-        if order_id:
-            order_details = self.orders.get(order_id)
-            if order_details:
-                print(f"Editing Order: {order_id}, Note: {order_details['note']}")  # Debugging line
-                self.address_var.set(order_details["address"])
-                self.note_var.set(order_details["note"])  # Make sure this is being set
-                self.cart = order_details.get("line_items", {})
-
-
-        """Display the Create or Edit Order screen."""
-        self.current_view = "create_order"
-        frame = ttk.Frame(self.root)
-        frame.pack(fill="both", expand=True)
-
-        # Horizontal scrollbar for the main frame
-        h_scrollbar = ttk.Scrollbar(frame, orient="horizontal")
-        h_scrollbar.pack(side="bottom", fill="x")
-
-        # Product Selection Frame with Treeview and Scrollbar
-        product_frame = ttk.Frame(frame, borderwidth=1, relief="solid", padding=10)
-        product_frame.pack(side="left", fill="both", expand=True, padx=10)
-
-        # Label for Product Frame
-        ttk.Label(product_frame, text="Products", font=("Helvetica", 14)).pack(pady=10)
-
-        # Product Treeview with Horizontal Scrollbar
-        columns = ("name", "price")
-        product_tree = ttk.Treeview(product_frame, columns=columns, show="headings")
-        product_tree.heading("name", text="Product Name")
-        product_tree.heading("price", text="Price ($)")
-        product_tree.column("name", anchor="w", width=150)
-        product_tree.column("price", anchor="center", width=50)
-
-        product_scrollbar = ttk.Scrollbar(product_frame, orient="horizontal", command=product_tree.xview)
-        product_tree.configure(xscrollcommand=product_scrollbar.set)
-        product_tree.pack(fill="both", expand=True)
-        product_scrollbar.pack(fill="x")
-
-        # Sample list of products
-        products = [
-            {"name": "Product 1", "price": 10},
-            {"name": "Product 2", "price": 15},
-            {"name": "Product 3", "price": 20}
-        ]
-
-        for product in products:
-            product_tree.insert("", "end", values=(product["name"], product["price"]))
-
-        # Add button at the bottom of the product frame
-        add_button = ttk.Button(product_frame, text="Add Selected Product", command=lambda: self.add_selected_to_cart(product_tree))
-        add_button.pack(pady=10)
-
-        # Order Frame with Border and Padding
-        self.order_frame = ttk.Frame(frame, borderwidth=2, relief="groove", padding=10)
-        self.order_frame.pack(side="right", fill="both", expand=True, padx=10)
-        
-        ttk.Label(self.order_frame, text="Order Summary", font=("Helvetica", 14)).grid(row=0, column=0, columnspan=3, pady=10)
-
-        # Initialize line_items_tree if not already done
-        if not hasattr(self, 'line_items_tree'):
-            self.line_items_tree = ttk.Treeview(self.order_frame, columns=("product", "quantity", "price"), show="headings")
-            self.line_items_tree.heading("product", text="Product Name")
-            self.line_items_tree.heading("quantity", text="Quantity")
-            self.line_items_tree.heading("price", text="Price ($)")
-            self.line_items_tree.grid(row=1, column=0, columnspan=3, sticky="nsew")
-
-        # Load existing order details and items if editing
-        self.address_var = tk.StringVar()
-        self.note_var = tk.StringVar()
-        if order_id:
-            order_details = self.orders.get(order_id)
-            if order_details:
-                self.address_var.set(order_details["address"])
-                self.note_var.set(order_details["note"])
-                self.cart = order_details.get("line_items", {})  # Load line items into the cart
-        else:
-            self.cart = {}
-
-        # Populate line items if editing
-        self.update_order_frame()
-
-        # # Add button to remove selected item from the line items
-        # remove_item_button = ttk.Button(self.order_frame, text="Remove Selected Item", command=self.remove_selected_item)
-        # remove_item_button.grid(row=2, column=0, columnspan=3, pady=10)
-
-        # Fixed Order Details (Address and Note) and Submit Button
-        details_frame = ttk.Frame(self.order_frame, padding=10)
-        details_frame.grid(row=20, column=0, columnspan=3, sticky="ew", pady=10)
-
-        ttk.Label(details_frame, text="Address:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-        address_entry = ttk.Entry(details_frame, textvariable=self.address_var, width=30)
-        address_entry.grid(row=0, column=1, padx=5, pady=5)
-
-        ttk.Label(details_frame, text="Note:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        note_entry = ttk.Entry(details_frame, textvariable=self.note_var, width=30)
-        note_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        # Submit Order Button at the bottom
-        submit_button = ttk.Button(details_frame, text="Submit Order", command=lambda: self.submit_order(order_id))
-        submit_button.grid(row=2, column=0, columnspan=2, pady=10)
-        self.show_frame(frame)
-
 
     def submit_order(self, order_id=None):
+        user_id = session.user_id
         """Submit the order and generate a new order or update an existing order."""
-        address = self.address_var.get()
+        pickup = self.pickup_var.get()
         note = self.note_var.get()
 
-        if not address or not self.cart:
+        if not pickup or not self.cart:
             messagebox.showerror("Error", "Please add products to the cart and provide an address.")
             return
         
-        if order_id:  # If it's an existing order being edited, update it
-            self.orders[order_id]["address"] = address
-            self.orders[order_id]["note"] = note
-            self.orders[order_id]["line_items"] = self.cart  # Update line items
-            success_message = f"Order {order_id} updated successfully!"
-        else:  # New order creation
-            order_id = self.order_counter
-            self.orders[order_id] = {
-                "address": address,
-                "note": note,
-                "status": "Pending",
-                "line_items": self.cart  # Add line items to the new order
-            }
-            self.order_counter += 1
-            success_message = f"Order {order_id} submitted successfully!"
 
-        # Clear cart
-        # self.cart.clear()
-        self.update_order_frame()
+        # order_details = {
+        #     "user_id": 1,
+        #     "pickup_date": "2024-11-30",
+        #     "order_text": "Please deliver during business hours"
+        # }
 
-        # Clear the entry fields
-        self.address_var.set("")  # Clear address field
-        self.note_var.set("")     # Clear note field
+        order_details = {}
+        order_details["user_id"]=user_id
+        order_details["pickup"] = pickup
+        order_details["note"] = note
 
-        # Optionally, show a success message after saving
-        success_label = ttk.Label(self.root, text=success_message, font=("Helvetica", 12), foreground="green")
-        success_label.pack(pady=10)
+        # print(order_details)
 
-        self.root.after(2000, success_label.destroy)  # 2000 milliseconds = 2 seconds
+        order_manager = OrderManager()
+        result = order_manager.insert_order(self.cart,order_details)
+
+        
+
+               # Display success or error message
+        if result["success"]:
+            messagebox.showinfo("Order Status", result["message"])
+            # Clear cart
+            # self.cart.clear()
+            self.update_order_frame()
+
+            # Clear the entry fields
+            self.pickup_var.set("")  # Clear address field
+            self.note_var.set("")     # Clear note field
+        else:
+            messagebox.showerror("Error", result["message"])
+
+
+
         self.show_user_home()
 
 
 
+# -------------------------- View Orders  frame ------------------------------------
 
 
-    def view_order(self, order_tree):
-        """View selected order details with cart items in a larger frame."""
-        selected_item = order_tree.selection()
-        if selected_item:
-            order_id = order_tree.item(selected_item, "values")[0]
-            order_details = self.orders.get(int(order_id))
-            
-            if order_details:
-                # Create a new Toplevel window for displaying order details
-                order_window = tk.Toplevel()
-                order_window.title(f"Order Details - ID: {order_id}")
-                order_window.geometry("400x300")  # Adjust size as needed
+    def show_orders(self):
+        """Display the Manage Orders screen."""
+        self.current_view = "manage_order"
 
-                # Display order metadata at the top
-                tk.Label(order_window, text=f"Order ID: {order_id}", font=("Arial", 14, "bold")).pack(pady=(10, 5))
-                tk.Label(order_window, text=f"Address: {order_details['address']}", font=("Arial", 12)).pack(pady=2)
-                tk.Label(order_window, text=f"Note: {order_details['note']}", font=("Arial", 12)).pack(pady=2)
-                tk.Label(order_window, text=f"Status: {order_details['status']}", font=("Arial", 12)).pack(pady=(2, 10))
+        # Main frame for managing orders
+        frame = ttk.Frame(self.root)
+        frame.pack(fill="both", expand=True)
 
-                # Frame for cart items
-                cart_frame = ttk.Frame(order_window)
-                cart_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        # Label for Orders Frame
+        ttk.Label(frame, text="Manage Orders", font=("Helvetica", 14)).pack(pady=10)
 
-                # Headers for the cart item list
-                headers = ["Product Name", "Quantity", "Price"]
-                for col_num, header in enumerate(headers):
-                    ttk.Label(cart_frame, text=header, font=("Arial", 10, "bold")).grid(row=0, column=col_num, padx=5, pady=5)
+        # Frame to hold the Treeview and scrollbars
+        tree_frame = ttk.Frame(frame)
+        tree_frame.pack(padx=20, pady=10, fill="both", expand=True) 
 
-                # List each item in the cart with quantity and price
-                for row_num, (product_name, details) in enumerate(order_details["line_items"].items(), start=1):
-                    ttk.Label(cart_frame, text=product_name).grid(row=row_num, column=0, padx=5, pady=5)
-                    ttk.Label(cart_frame, text=str(details["quantity"])).grid(row=row_num, column=1, padx=5, pady=5)
-                    ttk.Label(cart_frame, text=f"${details['price']:.2f}").grid(row=row_num, column=2, padx=5, pady=5)
+        # Define columns for the Treeview
+        columns = ("order_id", "user_id", "order_date", "pickup_date", "order_status")
+        order_tree = ttk.Treeview(tree_frame, columns=columns, show="headings")
 
-                # Add a close button at the bottom
-                ttk.Button(order_window, text="Close", command=order_window.destroy).pack(pady=10)
+        # Define column headings and set anchor to center
+        for col in columns:
+            order_tree.heading(col, text=col.replace("_", " ").title())
+            order_tree.column(col, anchor="center")
 
-    
-    def edit_order(self, order_tree):
-        """Edit selected order details."""
-        selected_item = order_tree.selection()
-        if selected_item:
-            order_id = order_tree.item(selected_item, "values")[0]
-            print(f"Selected Order ID: {order_id}")  # Debugging line
-            self.show_create_or_edit_order(order_id=int(order_id))
+        # Add the Treeview widget to the frame
+        order_tree.pack(fill="both", expand=True)
+
+        # Horizontal scrollbar
+        horiz_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=order_tree.xview)
+        horiz_scrollbar.pack(side="bottom", fill="x")
+
+        # Configure scrollbars for the Treeview
+        order_tree.configure(xscrollcommand=horiz_scrollbar.set)
+
+        # Fetch orders from the database and insert them into the Treeview
+        order_manager = OrderManager()
+        orders = order_manager.get_orders(session.user_id)
+
+        for order in orders:
+            order_tree.insert("", "end", values=(order[0], order[1], order[2], order[3], order[4]))
+
+        # Bind an event when an order is selected
+        order_tree.bind("<ButtonRelease-1>", lambda event, tree=order_tree: self.view_order_details(event, tree))
+
+        # Buttons for managing orders (View, Edit, Delete)
+        manage_buttons_frame = ttk.Frame(frame)
+        manage_buttons_frame.pack(fill="x", pady=10)
+
+        # Add a back button to return to home screen
+        back_button = ttk.Button(manage_buttons_frame, text="Back", command=self.show_user_home)
+        back_button.pack(pady=20)
+
+        # Show the frame
+        self.show_frame(frame)
 
 
-    def delete_order(self, order_tree):
-        """Delete selected order."""
-        selected_item = order_tree.selection()
-        if selected_item:
-            order_id = order_tree.item(selected_item, "values")[0]
-            if messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete Order ID {order_id}?"):
-                del self.orders[int(order_id)]
-                self.show_manage_order()
+
+
+
+    def view_order_details(self, event, tree):
+        # Get selected order's order_id
+        selected_item = tree.selection()[0]
+        order_id = tree.item(selected_item)['values'][0]
+
+        order_manager = OrderManager()
+        order_details = order_manager.get_ordersdetails(order_id)
+        print(order_details)
+
+        if order_details:
+            # Create a popup window to display order details
+            self.show_order_popup(order_details)
+
+
+    def show_order_popup(self, order_details):
+        popup = tk.Toplevel(self.root)
+        popup.title(f"Order Details (ID: {order_details[0][0]})")
+
+        # Display basic order details first (Order ID, Pickup Date, Order Status, etc.)
+        order_info = [
+            ("Order ID", order_details[0][0]),
+            ("Pickup Date", order_details[0][1]),
+            ("Order Status", order_details[0][2]),
+        ]
+
+        row = 0
+        for label, value in order_info:
+            tk.Label(popup, text=f"{label}: {value}").grid(row=row, column=0, padx=10, pady=5)
+            row += 1
+
+        # Now display the material names and quantities
+        tk.Label(popup, text="Materials and Quantities:").grid(row=row, column=0, padx=10, pady=5)
+        row += 1
+
+        # Loop through the rows and display material names and quantities
+        for order_id, pickup_date, order_status, material_name, quantity in order_details:
+            tk.Label(popup, text=f"Material: {material_name}, Quantity: {quantity}").grid(row=row, column=0, padx=10, pady=5)
+            row += 1
+
+        # Add a Close button
+        close_button = tk.Button(popup, text="Close", command=popup.destroy)
+        close_button.grid(row=row, column=0, pady=10)
+
+
+
+
+
+
 
 
     def logout(self):
