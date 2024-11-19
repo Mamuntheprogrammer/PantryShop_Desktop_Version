@@ -1,0 +1,10 @@
+pixmap_themes = [
+   "arc",
+   "blue",
+   "clearlooks",
+   "elegance",
+   "kroc",
+   "plastik",
+   "radiance",
+   "winxpblue"
+]

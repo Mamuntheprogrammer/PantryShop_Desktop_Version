@@ -1,11 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
 import pandas as pd  # Import pandas for exporting data
-from datetime import datetime,date
+from datetime import datetime,date,timedelta
 from tkinter import messagebox,Tk, StringVar, IntVar,BooleanVar
 from tkinter.simpledialog import askstring
 import tkinter.messagebox as MessageBox
 import os
+from tkcalendar import DateEntry
+from ttkthemes import ThemedTk
+
 
 
 #----------- import session for id and role --------
@@ -16,18 +19,30 @@ from controllers.upfile_manager import UploadFileManager
 from controllers.material_manager import MaterialManager
 from controllers.vendor_manager import VendorManager  # Import VendorManager
 from controllers.user_manager import UserManager
+from controllers.order_manager import OrderManager
+from controllers.pdf_manager import PDFManager
+from controllers.dashboard import DashboardManager
+from tkinter import Menu
 
 class AdminView:
-    def __init__(self, root,show_login_screen_callback):
+    def __init__(self, root, show_login_screen_callback):
         self.root = root
         self.show_login_screen_callback = show_login_screen_callback
         self.root.title("Admin Dashboard")
-        self.root.geometry("900x600")
+        self.root.geometry("1150x675")
         self.current_frame = None
+
         self.create_admin_menu()  # Setup the menu
         self.create_admin_dashboard()  # Setup the dashboard with frames and buttons
 
     def create_admin_menu(self):
+        # Create a style object for the menu
+        style = ttk.Style()
+
+        # Define a custom style for the Menu items (applied to the root window)
+        style.configure("TMenu", background="#333", foreground="#FFF", font=("Helvetica", 10))
+        style.map("TMenu", background=[('active', '#002bb2')])  # Active background color for Menu items
+
         # Create the menu bar
         menu_bar = tk.Menu(self.root, bg="#333", fg="#FFF", font=("Helvetica", 10))
 
@@ -38,7 +53,6 @@ class AdminView:
         material_menu.add_command(label="View Material Report", command=self.show_view_material_report_frame)
         material_menu.add_command(label="Create Material type", command=self.show_create_material_type_frame)  # Fixed reference
         menu_bar.add_cascade(label="Material Management", menu=material_menu)
-
 
         # Vendor Management menu
         vendor_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
@@ -60,7 +74,7 @@ class AdminView:
 
         # User Management menu
         user_menu = tk.Menu(menu_bar, tearoff=0, bg="#333", fg="#FFF", activebackground="#002bb2")
-        user_menu.add_command(label="Add User", command=self.show_add_user_frame)
+        user_menu.add_command(label="Add & Update User", command=self.show_add_user_frame)
         user_menu.add_command(label="View User List", command=self.show_user_list_frame)
         menu_bar.add_cascade(label="User Management", menu=user_menu)
 
@@ -72,7 +86,10 @@ class AdminView:
         # Configure the root window to display this menu
         self.root.config(menu=menu_bar)
 
+
     def create_admin_dashboard(self):
+        
+
         # Main dashboard frame
         dashboard_frame = ttk.Frame(self.root, padding="20")
         dashboard_frame.pack(fill="both", expand=True)
@@ -91,17 +108,128 @@ class AdminView:
         frame.pack(expand=True, fill="both")
         self.current_frame = frame
 
+
     def show_welcome_message(self):
-        """Display a welcome message when no specific view is selected."""
+        """Display a welcome message with a compact grid of count cards and visualizations.""" 
         welcome_frame = ttk.Frame(self.content_frame)
-        ttk.Label(welcome_frame, text="Welcome to the Admin Dashboard", font=("Helvetica", 16)).pack(pady=20)
-        
+        welcome_frame.pack(fill="both", expand=True, padx=20, pady=2)
 
-        # # Align the Back button below the Submit button, centered
-        # back_button = ttk.Button(welcome_frame, text="Back", width=20, command=self.show_login_screen_callback)
-        # back_button.pack(pady=5)
+        # Display the welcome label at the top
+        ttk.Label(welcome_frame, text=f"Welcome to {session.user_name}'s Dashboard", font=("Helvetica", 16)).pack(pady=2)
 
+        # Create a DashboardManager instance to fetch data
+        dashboard_manager = DashboardManager()
+
+        # Fetch all necessary data
+        data = dashboard_manager.get_order_counts()
+        material_counts = dashboard_manager.get_material_counts()
+        user_count = dashboard_manager.get_user_count()
+        vendor_count = dashboard_manager.get_vendor_count()
+        stock_products = dashboard_manager.get_stock_products()
+
+        # ------------------- Row 1: Stats -------------------
+        stats_frame = ttk.Frame(welcome_frame)
+        stats_frame.pack(fill="both", expand=True)
+
+        # Create a 2x4 grid for the first two rows (count cards)
+        for i in range(4):
+            stats_frame.grid_columnconfigure(i, weight=1, minsize=150)
+
+        # ------------------- Row 1 Cards -------------------
+        # Total Orders
+        self.create_card(stats_frame, "Total Orders", data['total_orders'], 0, 0)
+
+        # Approved Orders
+        self.create_card(stats_frame, "Approved Orders", data['approved_orders'], 0, 1)
+
+        # Pending Orders
+        self.create_card(stats_frame, "Pending Orders", data['pending_orders'], 0, 2)
+
+        # Total Materials
+        self.create_card(stats_frame, "Total Materials", material_counts['total_materials'], 0, 3)
+
+        # ------------------- Row 2: Material Stats -------------------
+        material_frame = ttk.Frame(welcome_frame)
+        material_frame.pack(fill="both", expand=True)
+
+        for i in range(4):
+            material_frame.grid_columnconfigure(i, weight=1, minsize=150)
+
+        # ------------------- Row 2 Cards -------------------
+        # Active Materials
+        self.create_card(material_frame, "Active Materials", material_counts['active_materials'], 1, 0)
+
+        # Inactive Materials
+        self.create_card(material_frame, "Inactive Materials", material_counts['inactive_materials'], 1, 1)
+
+        # Total Users
+        self.create_card(material_frame, "Total Users", user_count['total_users'], 1, 2)
+
+        # Total Vendors
+        self.create_card(material_frame, "Total Vendors", vendor_count['total_vendors'], 1, 3)
+
+        # ------------------- Row 3: Donut Charts -------------------
+        chart_frame = ttk.Frame(welcome_frame)
+        chart_frame.pack(fill="both", expand=True)
+
+        chart_frame.grid_columnconfigure(0, weight=1)
+        chart_frame.grid_columnconfigure(1, weight=1)
+        chart_frame.grid_columnconfigure(2, weight=1)
+
+        # Plot Donut Chart 1: Order Status Distribution
+        dashboard_manager.plot_order_donut(chart_frame, data["approved_orders"], data["pending_orders"], data["total_orders"], 0)
+
+        # Plot Donut Chart 2: Material Status Distribution
+        dashboard_manager.plot_material_donut(chart_frame, material_counts["active_materials"], material_counts["inactive_materials"], material_counts["total_materials"], 1)
+
+        # ------------------- Row 4: Bar Charts -------------------
+        bar_chart_frame = ttk.Frame(welcome_frame)
+        bar_chart_frame.pack(fill="both", expand=True)
+
+        bar_chart_frame.grid_columnconfigure(0, weight=1)
+        bar_chart_frame.grid_columnconfigure(1, weight=1)
+        bar_chart_frame.grid_columnconfigure(2, weight=1)
+
+        # Plot Bar Chart 1: Least Stock Products
+        dashboard_manager.plot_least_stock_materials(bar_chart_frame, stock_products["least_stock_materials"], 0)
+
+        # Plot Bar Chart 2: Max Stock Products
+        dashboard_manager.plot_max_stock_materials(bar_chart_frame, stock_products["max_stock_materials"], 1)
+
+        # Show the final welcome_frame
         self.show_frame(welcome_frame)
+
+
+    def create_card(self, parent, title, count, row, column):
+        # Create a style for the card
+        style = ttk.Style()
+        style.configure("Card.TFrame", 
+                        relief="raised", 
+                        background="#f9f9f9",  # Light background for card
+                        padding=10)
+        """Create a card-like effect for displaying counts."""
+        card_frame = ttk.Frame(parent, style="Card.TFrame",padding=10)
+        card_frame.grid(row=row, column=column, padx=10, pady=10, sticky="nsew")
+
+        # Set a background color for the card (you can adjust the color as needed)
+        card_frame.configure(style="Card.TFrame")
+
+        # Add the title label
+        ttk.Label(card_frame, text=title, font=("Helvetica", 10, "bold"), anchor="center").pack()
+
+        # Add the count label with larger font size
+        ttk.Label(card_frame, text=str(count), font=("Helvetica", 16, "bold"), anchor="center",foreground="#007bff").pack()
+
+        return card_frame
+
+
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------
 # -------------------- Material Management Views --------------------
@@ -171,6 +299,7 @@ class AdminView:
         material_details_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Define variables for each material attribute
+        material_id_var2 = StringVar()
         material_name_var = StringVar()
         material_type_var = StringVar()
         description_var = StringVar()
@@ -178,6 +307,7 @@ class AdminView:
         status_var = StringVar(value="Inactive")
         created_date_var = StringVar(value=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         created_by_var = StringVar(value=session.user_id)
+        vendorid_var = StringVar()
 
         # Initialize MaterialManager
         material_manager = MaterialManager()
@@ -186,17 +316,24 @@ class AdminView:
         material_types = material_manager.get_material_types()
         
         if material_types:
+            material_types.insert(0, "Select Type")
             material_type_var.set(material_types[0])  # Set the first type as default if available
+
+        vendorids = material_manager.get_vendor_ids()
+        if vendorids:
+            vendorids.insert(0, "Select VendorID")
+            vendorid_var.set(vendorids[0])  # Set the first type as default if available
 
         # Material detail fields layout - adjust positions to avoid overlapping
         fields = [
+            ("Material Id", material_id_var2),
             ("Material Name", material_name_var),
             ("Description", description_var),
             ("Current Stock", current_stock_var),
-            ("Status", status_var),
             ("Created Date", created_date_var),
             ("Created By", created_by_var),
         ]
+                    # ("Status", status_var),
 
         # Populate the details section with labels and entry widgets
         for i, (label_text, var) in enumerate(fields):
@@ -211,23 +348,39 @@ class AdminView:
         material_type_dropdown = ttk.OptionMenu(material_details_frame, material_type_var, *material_types)
         material_type_dropdown.grid(row=1, column=1, sticky="w", padx=5, pady=2)
 
+        # Material Type - Dropdown field on its dedicated row
+        ttk.Label(material_details_frame, text="Vendor:").grid(row=7, column=0, sticky="e", padx=5, pady=2)
+        material_type_dropdown = ttk.OptionMenu(material_details_frame, vendorid_var, *vendorids)
+        material_type_dropdown.grid(row=7, column=1, sticky="w", padx=5, pady=2)
+
+        # Status - Dropdown field with 'Active' and 'Inactive' options, defaulting to 'Inactive'
+        ttk.Label(material_details_frame, text="Status:").grid(row=8, column=0, sticky="e", padx=5, pady=2)
+        # status_var.set("Inactive")  # Set default value to 'Inactive'
+        status_dropdown = ttk.OptionMenu(material_details_frame, status_var, "Inactive", "Active", "Inactive")
+        status_dropdown.grid(row=8, column=1, sticky="w", padx=5, pady=2)
+
         # Clear the entries
         def clear_material_fields():
+            material_id_var2.set("")
             material_name_var.set("")
-            material_type_var.set(material_types[0] if material_types else "")
+            material_type_var.set("")
             description_var.set("")
             current_stock_var.set("")
             status_var.set("Inactive")
             created_date_var.set(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             created_by_var.set(session.user_id)
+            vendorid_var.set("")
 
         # Function to load existing material data
         def load_material(material_id_var):
             material_id = material_id_var.get()
+            print(material_id)
+
             if material_id.isdigit():
                 material_data = material_manager.load_material(material_id)
                 print(material_data)
                 if material_data:
+                    material_id_var2.set(material_data["material_id"])
                     material_name_var.set(material_data["material_name"])
                     material_type_var.set(material_data["material_type"])
                     description_var.set(material_data["description"])
@@ -235,6 +388,7 @@ class AdminView:
                     status_var.set(material_data["status"])
                     created_date_var.set(material_data["created_date"])
                     created_by_var.set(material_data["created_by"])
+                    vendorid_var.set(material_data["vendor_id"])
                 else:
                     messagebox.showinfo("Material Not Found", f"No material found with ID {material_id}")
             else:
@@ -243,7 +397,7 @@ class AdminView:
         # Function to add a new material
         def add_material():
             new_material_data = {
-                "material_id": None,  # Automatically generated in most cases
+                "material_id": material_id_var2.get(),  # Automatically generated in most cases
                 "material_name": material_name_var.get(),
                 "material_type": material_type_var.get(),
                 "description": description_var.get(),
@@ -251,6 +405,7 @@ class AdminView:
                 "status": status_var.get(),
                 "created_date": created_date_var.get(),
                 "created_by": session.user_id,
+                "vendor_id": vendorid_var.get()
             }
             material_manager.add_material(new_material_data)
             clear_material_fields()
@@ -267,6 +422,7 @@ class AdminView:
                     "status": status_var.get(),
                     "created_date": created_date_var.get(),
                     "created_by": created_by_var.get(),
+                    "vendor_id": vendorid_var.get(),
                 }
                 material_manager.update_material(material_id, updated_material_data)
                 clear_material_fields()
@@ -1088,179 +1244,356 @@ class AdminView:
 #..... Order Menu  Frame-1 .....
 
     def show_manage_order_frame(self):
-        # Create a new frame for managing orders
-        frame = ttk.Frame(self.content_frame)
+            # Create a new frame for Order Report
+            frame = ttk.Frame(self.content_frame)
+            
+            # Title for the report
+            ttk.Label(frame, text="Manage Order", font=("Helvetica", 16)).pack(pady=20)
+            
+            # Create a frame for the date pickers (start and end dates)
+            date_frame = ttk.Frame(frame)
+            date_frame.pack(pady=10)
+            
+            # Label and Date Picker for Start Date
+            ttk.Label(date_frame, text="Start Date:").grid(row=0, column=0, padx=5)
+            start_date_picker = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+            start_date_picker.grid(row=0, column=1, padx=5)
+            
+            # Set default to the first day of the current month
+            today = datetime.today()
+            first_day_of_month = today.replace(day=1)
+            start_date_picker.set_date(first_day_of_month)
 
-        # Title for the frame
-        title_label = ttk.Label(frame, text="Manage Orders", font=("Helvetica", 16))
-        title_label.grid(row=0, column=0, columnspan=2, pady=20)
+            # Label and Date Picker for End Date
+            ttk.Label(date_frame, text="End Date:").grid(row=0, column=2, padx=5)
+            end_date_picker = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+            end_date_picker.grid(row=0, column=3, padx=5)
+            
+            # Set default to the last day of the current month
+            last_day_of_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+            end_date_picker.set_date(last_day_of_month)
 
-        # Filter options (Order ID, Pickup Date, User ID)
-        filter_frame = ttk.Frame(frame)
-        filter_frame.grid(row=1, column=0, columnspan=2, pady=10)
+            # Fetch Data Button
+            fetch_button = ttk.Button(date_frame, text="Fetch Data", command=lambda: self.fetch_order_data2(start_date_picker, end_date_picker))
+            fetch_button.grid(row=0, column=4, padx=5)
 
-        ttk.Label(filter_frame, text="Order ID:").grid(row=0, column=0, padx=5)
-        self.order_id_entry = ttk.Entry(filter_frame)
-        self.order_id_entry.grid(row=0, column=1, padx=5)
+            # Create a table frame for displaying the report
+            table_frame = ttk.Frame(frame)
+            table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        ttk.Label(filter_frame, text="Pickup Date:").grid(row=0, column=2, padx=5)
-        self.pickup_date_entry = ttk.Entry(filter_frame)
-        self.pickup_date_entry.grid(row=0, column=3, padx=5)
+            self.current_order_page = 0
+            self.order_page_size = 15
 
-        ttk.Label(filter_frame, text="User ID:").grid(row=0, column=4, padx=5)
-        self.user_id_entry = ttk.Entry(filter_frame)
-        self.user_id_entry.grid(row=0, column=5, padx=5)
+            # Treeview for displaying order data
+            columns = ("order_id","order_status", "user_id", "order_date", "pickup_date" )
 
-        # Filter button
-        filter_button = ttk.Button(filter_frame, text="Filter", command=self.apply_filters)
-        filter_button.grid(row=0, column=6, padx=10)
+            self.order_tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=self.order_page_size)
+            
+            # Bind an event when an order is selected
+            self.order_tree.bind("<Double-1>", lambda event, tree=self.order_tree: self.view_order_details(event, tree))
+            
+            # Define column headings and set anchor to center
+            for col in columns:
+                self.order_tree.heading(col, text=col.replace("_", " ").title())
+                self.order_tree.column(col, anchor="center")
+            
+            # Vertical scrollbar
+            vert_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.order_tree.yview)
+            vert_scrollbar.pack(side="right", fill="y")
+            
+            # Horizontal scrollbar
+            horiz_scrollbar = ttk.Scrollbar(table_frame, orient="horizontal", command=self.order_tree.xview)
+            horiz_scrollbar.pack(side="bottom", fill="x")
+            
+            # Configure scrollbars for the Treeview
+            self.order_tree.configure(yscrollcommand=vert_scrollbar.set, xscrollcommand=horiz_scrollbar.set)
+            self.order_tree.pack(fill="both", expand=True)
 
-        # Tree view for displaying orders
-        columns = ("Order ID", "User ID", "Pickup Date", "Order Date", "Status")
-        self.order_tree = ttk.Treeview(frame, columns=columns, show="headings", height=11)
-        for col in columns:
-            self.order_tree.heading(col, text=col)
-            self.order_tree.column(col, width=100)
+            # Pagination controls
+            pagination_frame = ttk.Frame(frame)
+            pagination_frame.pack(pady=10)
 
-        # Scrollbars for the tree view
-        vscrollbar = ttk.Scrollbar(frame, orient="vertical", command=self.order_tree.yview)
-        vscrollbar.grid(row=2, column=1, sticky="ns")
-        self.order_tree.configure(yscrollcommand=vscrollbar.set)
+            ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_order_page(-1)).grid(row=0, column=0, padx=5)
+            ttk.Button(pagination_frame, text="Next", command=lambda: self.change_order_page(1)).grid(row=0, column=1, padx=5)
 
-        hscrollbar = ttk.Scrollbar(frame, orient="horizontal", command=self.order_tree.xview)
-        hscrollbar.grid(row=3, column=0, sticky="ew")
-        self.order_tree.configure(xscrollcommand=hscrollbar.set)
+            ttk.Button(pagination_frame, text="Approve", command=self.approve_selected_order).grid(row=0, column=2, padx=5)
+            # ttk.Button(pagination_frame, text="View", command=self.view_selected_order).grid(row=0, column=3, padx=5)
+            ttk.Button(pagination_frame, text="Print", command=self.print_selected_order).grid(row=0, column=4, padx=5)
 
-        self.order_tree.grid(row=2, column=0, sticky="nsew")
+            # Export button
+            ttk.Button(pagination_frame, text="Export", command=self.export_order_report).grid(row=0, column=5, padx=5)
 
-        # Pagination controls
-        pagination_frame = ttk.Frame(frame)
-        pagination_frame.grid(row=4, column=0, pady=10)
+            # Home button to return to the welcome frame
+            ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=6, padx=5)
 
-        ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_page(-1)).grid(row=0, column=0, padx=5)
-        ttk.Button(pagination_frame, text="Next", command=lambda: self.change_page(1)).grid(row=0, column=1, padx=5)
+            # Display this frame
+            self.show_frame(frame)
 
-        # Action buttons for the selected order
-        action_frame = ttk.Frame(frame)
-        action_frame.grid(row=2, column=2, padx=10, sticky="n")
+    def fetch_order_data2(self, start_date_picker, end_date_picker):
+        """Fetch and update order data based on selected start and end date"""
+        start_date = start_date_picker.get_date().strftime('%Y-%m-%d')
+        end_date = end_date_picker.get_date().strftime('%Y-%m-%d')
+        
+        # Fetch data from the order manager using the selected date range
+        order_manager = OrderManager()  # Replace with your actual manager class
+        order_data = order_manager.get_orders_between_dates_p(start_date, end_date)
 
-        approve_button = ttk.Button(action_frame, text="Approve", command=self.approve_selected_order)
-        approve_button.pack(pady=5)
+        self.columns = ["order_id","order_status", "user_id", "order_date", "pickup_date" ]
 
-        view_button = ttk.Button(action_frame, text="View", command=self.view_selected_order)
-        view_button.pack(pady=5)
+        # Convert the fetched order data to a DataFrame
+        self.order_df = pd.DataFrame(order_data,columns=self.columns)
 
-        print_button = ttk.Button(action_frame, text="Print", command=self.print_selected_order)
-        print_button.pack(pady=5)
+        # Load the first page of order data into the Treeview
+        self.current_order_page = 0
+        self.order_page_size = 15
+        # self.display_order_page(table_frame)
+        self.display_order_page()
 
-        # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.grid(row=5, column=0, columnspan=2, pady=10)
+    def display_order_page(self):
+        # Clear existing rows in the Treeview
+        for item in self.order_tree.get_children():
+            self.order_tree.delete(item)
 
-        # Display this frame
-        self.show_frame(frame)
+        # Load the current page of order data
+        start_idx = self.current_order_page * self.order_page_size
+        end_idx = start_idx + self.order_page_size
+        for _, row in self.order_df.iloc[start_idx:end_idx].iterrows():
+            self.order_tree.insert("", "end", values=list(row))
 
-        # Load initial data and display first page
-        self.orders = self.load_order_data()  # Load your data here
-        self.filtered_orders = self.orders
-        self.current_page = 0
-        self.page_size = 10
-        self.display_orders_list()
-
-    def display_orders_list(self):
-        # Clear the tree view
-        for row in self.order_tree.get_children():
-            self.order_tree.delete(row)
-
-        # Get the current page of orders
-        start_idx = self.current_page * self.page_size
-        end_idx = start_idx + self.page_size
-        current_orders = self.filtered_orders[start_idx:end_idx]
-
-        # Insert the orders into the tree view
-        for order in current_orders:
-            self.order_tree.insert("", "end", values=(order["order_id"], order["user_id"], order["pickup_date"], order["order_date"], order["order_status"]))
-
-    def apply_filters(self):
-        # Apply filters based on the entries
-        order_id = self.order_id_entry.get().strip()
-        pickup_date = self.pickup_date_entry.get().strip()
-        user_id = self.user_id_entry.get().strip()
-
-        if not (order_id or pickup_date or user_id):
-            # Reset to all orders if no filter is entered
-            self.filtered_orders = self.orders
-        else:
-            # Filter orders based on input criteria
-            self.filtered_orders = [
-                order for order in self.orders
-                if (not order_id or str(order["order_id"]) == order_id) and
-                (not pickup_date or order["pickup_date"] == pickup_date) and
-                (not user_id or str(order["user_id"]) == user_id)
-            ]
-
-        # Reset to the first page after filtering
-        self.current_page = 0
-        self.display_orders_list()
-
-    def change_page(self, direction):
+    def change_order_page(self, direction):
         # Change page based on the direction (-1 for previous, +1 for next)
-        if 0 <= self.current_page + direction < len(self.filtered_orders) // self.page_size + 1:
-            self.current_page += direction
-            self.display_orders_list()
+        max_page = len(self.order_df) // self.order_page_size
+        self.current_order_page = min(max(0, self.current_order_page + direction), max_page)
+        
+        # Refresh the displayed page
+        self.display_order_page(self.order_tree.master)
 
     def approve_selected_order(self):
         # Approve or unapprove the selected order
         selected_item = self.order_tree.selection()
+        print(selected_item)
         if selected_item:
             order_id = self.order_tree.item(selected_item)["values"][0]
-            for order in self.orders:
-                if order["order_id"] == order_id:
-                    order["order_status"] = "Approved" if order["order_status"] == "Pending" else "Pending"
-                    self.display_orders_list()
-                    break
-        else:
-            messagebox.showwarning("No selection", "Please select an order to approve.")
+            ord_obj = OrderManager()
+            result = ord_obj.process_existing_order(order_id)
+            print(result)
 
-    def view_selected_order(self):
-        # View details of the selected order
-        selected_item = self.order_tree.selection()
-        if selected_item:
-            order_id = self.order_tree.item(selected_item)["values"][0]
-            for order in self.orders:
-                if order["order_id"] == order_id:
-                    self.show_order_details(order)
-                    break
-        else:
-            messagebox.showwarning("No selection", "Please select an order to view.")
+
+    def view_order_details(self, event, tree):
+        # Get selected order's order_id
+        selected_item = tree.selection()[0]
+        order_id = tree.item(selected_item)['values'][0]
+
+        order_manager = OrderManager()
+        order_details = order_manager.get_ordersdetails(order_id)
+        print(order_details)
+
+        if order_details:
+            # Create a popup window to display order details
+            self.show_order_popup(order_details)
+
+
+    def show_order_popup(self, order_details):
+        popup = tk.Toplevel(self.root)
+        popup.title(f"Order Details (ID: {order_details[0][0]})")
+
+        # Display basic order details first (Order ID, Pickup Date, Order Status, etc.)
+        order_info = [
+            ("Order ID", order_details[0][0]),
+            ("Pickup Date", order_details[0][1]),
+            ("Order Status", order_details[0][2]),
+        ]
+
+        row = 0
+        for label, value in order_info:
+            tk.Label(popup, text=f"{label}: {value}").grid(row=row, column=0, padx=10, pady=5)
+            row += 1
+
+        # Now display the material names and quantities
+        tk.Label(popup, text="Materials and Quantities:").grid(row=row, column=0, padx=10, pady=5)
+        row += 1
+
+        # Loop through the rows and display material names and quantities
+        for order_id, pickup_date, order_status, material_name, quantity in order_details:
+            tk.Label(popup, text=f"Material: {material_name}, Quantity: {quantity}").grid(row=row, column=0, padx=10, pady=5)
+            row += 1
+
+        # Add a Close button
+        close_button = tk.Button(popup, text="Close", command=popup.destroy)
+        close_button.grid(row=row, column=0, pady=10)
 
     def print_selected_order(self):
         # Print the selected order
         selected_item = self.order_tree.selection()
-        if selected_item:
-            order_id = self.order_tree.item(selected_item)["values"][0]
-            for order in self.orders:
-                if order["order_id"] == order_id:
-                    self.print_order(order)
-                    break
-        else:
-            messagebox.showwarning("No selection", "Please select an order to print.")
+        order_id = self.order_tree.item(selected_item)["values"][0]
+        order_manager = OrderManager()
+        order_details = order_manager.get_ordersdetails(order_id)
+        pdf_obj = PDFManager()
+        pdf_obj.generate_receipt(order_details,order_id)
+        print("printed")
 
-    def load_order_data(self):
-        # Sample data loader function (replace this with actual data loading logic)
-        return [
-            {"order_id": i, "user_id": i % 5, "order_date": f"2024-11-{i:02}", "pickup_date": f"2024-11-{i+1:02}", "order_status": "Pending"}
-            for i in range(1, 101)  # 100 sample orders
-        ]
 
-    def show_order_details(self, order):
-        # Function to display order details in a popup
-        order_details = f"Order ID: {order['order_id']}\nUser ID: {order['user_id']}\nOrder Date: {order['order_date']}\nPickup Date: {order['pickup_date']}\nStatus: {order['order_status']}"
-        messagebox.showinfo("Order Details", order_details)
+    def export_order_report(self):
+        # Export the order data to a CSV file
+                # Get the current timestamp to append to the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    def print_order(self, order):
-        # Function to print order details (simulate)
-        print(f"Printing Order ID: {order['order_id']}")
+        # Define the file paths
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"Order_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export to both locations
+            self.order_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the Order report: {str(e)}")
+
+    # def show_manage_order_frame(self):
+    #     # Create a new frame for managing orders
+    #     frame = ttk.Frame(self.content_frame)
+
+    #     # Title for the frame
+    #     title_label = ttk.Label(frame, text="Manage Orders", font=("Helvetica", 16))
+    #     title_label.grid(row=0, column=0, columnspan=2, pady=20)
+
+    #     # Filter options (Order ID, Pickup Date, User ID)
+    #     filter_frame = ttk.Frame(frame)
+    #     filter_frame.grid(row=1, column=0, columnspan=2, pady=10)
+
+    #     ttk.Label(filter_frame, text="Order ID:").grid(row=0, column=0, padx=5)
+    #     self.order_id_entry = ttk.Entry(filter_frame)
+    #     self.order_id_entry.grid(row=0, column=1, padx=5)
+
+    #     ttk.Label(filter_frame, text="Pickup Date:").grid(row=0, column=2, padx=5)
+    #     self.pickup_date_entry = ttk.Entry(filter_frame)
+    #     self.pickup_date_entry.grid(row=0, column=3, padx=5)
+
+    #     ttk.Label(filter_frame, text="User ID:").grid(row=0, column=4, padx=5)
+    #     self.user_id_entry = ttk.Entry(filter_frame)
+    #     self.user_id_entry.grid(row=0, column=5, padx=5)
+
+    #     # Filter button
+    #     filter_button = ttk.Button(filter_frame, text="Filter", command=self.apply_filters)
+    #     filter_button.grid(row=0, column=6, padx=10)
+
+    #     # Tree view for displaying orders
+    #     columns = ("Order ID", "User ID", "Pickup Date", "Order Date", "Status")
+    #     self.order_tree = ttk.Treeview(frame, columns=columns, show="headings", height=11)
+    #     for col in columns:
+    #         self.order_tree.heading(col, text=col)
+    #         self.order_tree.column(col, width=100)
+
+    #     # Scrollbars for the tree view
+    #     vscrollbar = ttk.Scrollbar(frame, orient="vertical", command=self.order_tree.yview)
+    #     vscrollbar.grid(row=2, column=1, sticky="ns")
+    #     self.order_tree.configure(yscrollcommand=vscrollbar.set)
+
+    #     hscrollbar = ttk.Scrollbar(frame, orient="horizontal", command=self.order_tree.xview)
+    #     hscrollbar.grid(row=3, column=0, sticky="ew")
+    #     self.order_tree.configure(xscrollcommand=hscrollbar.set)
+
+    #     self.order_tree.grid(row=2, column=0, sticky="nsew")
+
+    #     # Pagination controls
+    #     pagination_frame = ttk.Frame(frame)
+    #     pagination_frame.grid(row=4, column=0, pady=10)
+
+    #     ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_page(-1)).grid(row=0, column=0, padx=5)
+    #     ttk.Button(pagination_frame, text="Next", command=lambda: self.change_page(1)).grid(row=0, column=1, padx=5)
+
+    #     # Action buttons for the selected order
+    #     action_frame = ttk.Frame(frame)
+    #     action_frame.grid(row=2, column=2, padx=10, sticky="n")
+
+    #     approve_button = ttk.Button(action_frame, text="Approve", command=self.approve_selected_order)
+    #     approve_button.pack(pady=5)
+
+    #     view_button = ttk.Button(action_frame, text="View", command=self.view_selected_order)
+    #     view_button.pack(pady=5)
+
+    #     print_button = ttk.Button(action_frame, text="Print", command=self.print_selected_order)
+    #     print_button.pack(pady=5)
+
+    #     # Home button to return to the welcome frame
+    #     ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=2, padx=5)
+        
+
+    #     # Display this frame
+    #     self.show_frame(frame)
+
+    #     # Load initial data and display first page
+    #     self.orders = self.load_order_data()  # Load your data here
+    #     self.filtered_orders = self.orders
+    #     self.current_page = 0
+    #     self.page_size = 10
+    #     self.display_orders_list()
+
+    # def display_orders_list(self):
+    #     # Clear the tree view
+    #     for row in self.order_tree.get_children():
+    #         self.order_tree.delete(row)
+
+    #     # Get the current page of orders
+    #     start_idx = self.current_page * self.page_size
+    #     end_idx = start_idx + self.page_size
+    #     current_orders = self.filtered_orders[start_idx:end_idx]
+
+    #     # Insert the orders into the tree view
+    #     for order in current_orders:
+    #         self.order_tree.insert("", "end", values=(order["order_id"], order["user_id"], order["pickup_date"], order["order_date"], order["order_status"]))
+
+    # def apply_filters(self):
+    #     # Apply filters based on the entries
+    #     order_id = self.order_id_entry.get().strip()
+    #     pickup_date = self.pickup_date_entry.get().strip()
+    #     user_id = self.user_id_entry.get().strip()
+
+    #     if not (order_id or pickup_date or user_id):
+    #         # Reset to all orders if no filter is entered
+    #         self.filtered_orders = self.orders
+    #     else:
+    #         # Filter orders based on input criteria
+    #         self.filtered_orders = [
+    #             order for order in self.orders
+    #             if (not order_id or str(order["order_id"]) == order_id) and
+    #             (not pickup_date or order["pickup_date"] == pickup_date) and
+    #             (not user_id or str(order["user_id"]) == user_id)
+    #         ]
+
+    #     # Reset to the first page after filtering
+    #     self.current_page = 0
+    #     self.display_orders_list()
+
+    # def change_page(self, direction):
+    #     # Change page based on the direction (-1 for previous, +1 for next)
+    #     if 0 <= self.current_page + direction < len(self.filtered_orders) // self.page_size + 1:
+    #         self.current_page += direction
+    #         self.display_orders_list()
+
+
+
+    # def load_order_data(self):
+    #     # Sample data loader function (replace this with actual data loading logic)
+    #     return [
+    #         {"order_id": i, "user_id": i % 5, "order_date": f"2024-11-{i:02}", "pickup_date": f"2024-11-{i+1:02}", "order_status": "Pending"}
+    #         for i in range(1, 101)  # 100 sample orders
+    #     ]
+
+    # def show_order_details(self, order):
+    #     # Function to display order details in a popup
+    #     order_details = f"Order ID: {order['order_id']}\nUser ID: {order['user_id']}\nOrder Date: {order['order_date']}\nPickup Date: {order['pickup_date']}\nStatus: {order['order_status']}"
+    #     messagebox.showinfo("Order Details", order_details)
+
+    # def print_order(self, order):
+    #     # Function to print order details (simulate)
+    #     print(f"Printing Order ID: {order['order_id']}")
 
 
 
@@ -1274,55 +1607,48 @@ class AdminView:
         # Title for the report
         ttk.Label(frame, text="Order Report", font=("Helvetica", 16)).pack(pady=20)
         
-        # Table frame for the report
+        # Create a frame for the date pickers (start and end dates)
+        date_frame = ttk.Frame(frame)
+        date_frame.pack(pady=10)
+        
+        # Label and Date Picker for Start Date
+        ttk.Label(date_frame, text="Start Date:").grid(row=0, column=0, padx=5)
+        start_date_picker = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        start_date_picker.grid(row=0, column=1, padx=5)
+        
+        # Set default to the first day of the current month
+        today = datetime.today()
+        first_day_of_month = today.replace(day=1)
+        start_date_picker.set_date(first_day_of_month)
+
+        # Label and Date Picker for End Date
+        ttk.Label(date_frame, text="End Date:").grid(row=0, column=2, padx=5)
+        end_date_picker = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
+        end_date_picker.grid(row=0, column=3, padx=5)
+        
+        # Set default to the last day of the current month
+        last_day_of_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        end_date_picker.set_date(last_day_of_month)
+
+        # Fetch Data Button
+        fetch_button = ttk.Button(date_frame, text="Fetch Data", command=lambda: self.fetch_order_data(start_date_picker, end_date_picker))
+        fetch_button.grid(row=0, column=4, padx=5)
+
+        # Create a table frame for displaying the report
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Sample order data (replace with real data)
-        order_data = [
-            {"order_id": i, "user_id": f"User {i}", "order_date": f"2024-11-{i:02}", 
-            "pickup_date": f"2024-11-{i+2:02}", "status": "Approved" if i % 2 == 0 else "Pending"}
-            for i in range(1, 31)  # 30 sample records
-        ]
-        
-        # Convert sample data to DataFrame for pagination and export
-        self.order_df = pd.DataFrame(order_data)
-        
-        # Display the first 15 rows initially
+
         self.current_order_page = 0
         self.order_page_size = 15
-        self.display_order_page(table_frame)
-        
-        # Pagination controls
-        pagination_frame = ttk.Frame(frame)
-        pagination_frame.pack(pady=10)
-        
-        ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_order_page(-1)).grid(row=0, column=0, padx=5)
-        ttk.Button(pagination_frame, text="Next", command=lambda: self.change_order_page(1)).grid(row=0, column=1, padx=5)
-        
-        # Export button
-        export_button = ttk.Button(frame, text="Export", command=self.export_order_report)
-        export_button.pack(pady=10)
-        
-        # Home button to return to the welcome frame
-        home_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
-        home_button.pack(pady=10)
-        
-        # Display this frame
-        self.show_frame(frame)
 
-    def display_order_page(self, parent):
-        # Clear existing table if any
-        for widget in parent.winfo_children():
-            widget.destroy()
-        
-        # Frame to hold the Treeview and scrollbars
-        tree_frame = ttk.Frame(parent)
-        tree_frame.pack(fill="both", expand=True)
-        
-        # Define columns for the Treeview
-        columns = ("order_id", "user_id", "order_date", "pickup_date", "status")
-        self.order_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.order_page_size)
+        # Treeview for displaying order data
+        columns = (
+            "order_id", "user_id", "first_name", "last_name", "email_address",
+            "order_date", "pickup_date", "order_status", "order_text",
+            "material_id", "material_name", "quantity", "unit_price", "role_type"
+        )
+
+        self.order_tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=self.order_page_size)
         
         # Define column headings and set anchor to center
         for col in columns:
@@ -1330,17 +1656,60 @@ class AdminView:
             self.order_tree.column(col, anchor="center")
         
         # Vertical scrollbar
-        vert_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.order_tree.yview)
+        vert_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.order_tree.yview)
         vert_scrollbar.pack(side="right", fill="y")
         
         # Horizontal scrollbar
-        horiz_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.order_tree.xview)
+        horiz_scrollbar = ttk.Scrollbar(table_frame, orient="horizontal", command=self.order_tree.xview)
         horiz_scrollbar.pack(side="bottom", fill="x")
         
         # Configure scrollbars for the Treeview
         self.order_tree.configure(yscrollcommand=vert_scrollbar.set, xscrollcommand=horiz_scrollbar.set)
         self.order_tree.pack(fill="both", expand=True)
+
+        # Pagination controls
+        pagination_frame = ttk.Frame(frame)
+        pagination_frame.pack(pady=10)
+
+        ttk.Button(pagination_frame, text="Previous", command=lambda: self.change_order_page(-1)).grid(row=0, column=0, padx=5)
+        ttk.Button(pagination_frame, text="Next", command=lambda: self.change_order_page(1)).grid(row=0, column=1, padx=5)
+
+        # Export button
+        ttk.Button(pagination_frame, text="Export", command=self.export_order_report).grid(row=0, column=2, padx=5)
+
+        # Home button to return to the welcome frame
+        ttk.Button(pagination_frame, text="Home", command=self.show_welcome_message).grid(row=0, column=3, padx=5)
+
+        # Display this frame
+        self.show_frame(frame)
+
+    def fetch_order_data(self, start_date_picker, end_date_picker):
+        """Fetch and update order data based on selected start and end date"""
+        start_date = start_date_picker.get_date().strftime('%Y-%m-%d')
+        end_date = end_date_picker.get_date().strftime('%Y-%m-%d')
         
+        # Fetch data from the order manager using the selected date range
+        order_manager = OrderManager()  # Replace with your actual manager class
+        order_data = order_manager.get_orders_between_dates(start_date, end_date)
+
+        self.columns = ["order_id", "user_id", "first_name", "last_name", "email_address",
+            "order_date", "pickup_date", "order_status", "order_text",
+            "material_id", "material_name", "quantity", "unit_price", "role_type"]
+
+        # Convert the fetched order data to a DataFrame
+        self.order_df = pd.DataFrame(order_data,columns=self.columns)
+
+        # Load the first page of order data into the Treeview
+        self.current_order_page = 0
+        self.order_page_size = 15
+        # self.display_order_page(table_frame)
+        self.display_order_page()
+
+    def display_order_page(self):
+        # Clear existing rows in the Treeview
+        for item in self.order_tree.get_children():
+            self.order_tree.delete(item)
+
         # Load the current page of order data
         start_idx = self.current_order_page * self.order_page_size
         end_idx = start_idx + self.order_page_size
@@ -1357,8 +1726,26 @@ class AdminView:
 
     def export_order_report(self):
         # Export the order data to a CSV file
-        self.order_df.to_csv("order_report.csv", index=False)
-        messagebox.showinfo("Export Successful", "Order report exported to 'order_report.csv'")
+                # Get the current timestamp to append to the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Define the file paths
+        data_folder_path = os.path.join(os.path.expanduser("~"), "Desktop", "Data", f"Order_report_{timestamp}.csv")
+
+        try:
+            # Ensure the Data folder exists, if not, create it
+            os.makedirs(os.path.dirname(data_folder_path), exist_ok=True)
+
+            # Export to both locations
+            self.order_df.to_csv(data_folder_path, index=False)
+
+            # Show a message box indicating success
+            MessageBox.showinfo("Export Success", f"Location: {data_folder_path}")
+
+        except Exception as e:
+            # Show error message if something goes wrong
+            MessageBox.showerror("Export Failed", f"An error occurred while exporting the Order report: {str(e)}")
+
 
 #--------------------------------------------------------------------
 # -------------------- User Management Views --------------------
@@ -1404,7 +1791,7 @@ class AdminView:
         is_active_var = BooleanVar()
         role_type_var = StringVar()
 
-        # User detail fields layout
+        # User detail fields layout (now with two columns)
         fields = [
             ("First Name", first_name_var),
             ("Last Name", last_name_var),
@@ -1422,28 +1809,28 @@ class AdminView:
             ("Role Type", role_type_var),
         ]
 
-        # Populate the details section with labels and entry widgets
+        # Populate the details section with labels and entry widgets, arranged in two columns
         for i, (label_text, var) in enumerate(fields):
-            ttk.Label(user_details_frame, text=label_text + ":").grid(row=i, column=0, sticky="e", padx=5, pady=2)
-
+            row = i // 2  # This determines the row number, dividing the fields into two columns
+            column = 2 * (i % 2)  # This places the field in one of the two columns (0 or 2)
+            
+            # Create label and input field in the appropriate column
+            ttk.Label(user_details_frame, text=label_text + ":").grid(row=row, column=column, sticky="e", padx=5, pady=5)
+            
             if isinstance(var, BooleanVar):
                 # If the variable is a BooleanVar, create a Checkbutton
-                ttk.Checkbutton(user_details_frame, variable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
+                ttk.Checkbutton(user_details_frame, variable=var).grid(row=row, column=column + 1, sticky="w", padx=5, pady=5)
             elif isinstance(var, IntVar):
                 # If the variable is an IntVar, create an Entry for numbers
-                ttk.Entry(user_details_frame, textvariable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
+                ttk.Entry(user_details_frame, textvariable=var).grid(row=row, column=column + 1, sticky="w", padx=5, pady=5)
             elif label_text == "Role Type":
                 # For Role Type, create a Combobox for selection between User and Admin
                 role_type_combobox = ttk.Combobox(user_details_frame, textvariable=var, values=["User", "Admin"], state="readonly")
-                role_type_combobox.grid(row=i, column=1, sticky="w", padx=5, pady=2)
+                role_type_combobox.grid(row=row, column=column + 1, sticky="w", padx=5, pady=5)
                 role_type_combobox.set("User")  # Default value can be 'User' or 'Admin'
             else:
                 # Default case for all other fields, create a simple Entry widget
-                ttk.Entry(user_details_frame, textvariable=var).grid(row=i, column=1, sticky="w", padx=5, pady=2)
-
-
-
-
+                ttk.Entry(user_details_frame, textvariable=var).grid(row=row, column=column + 1, sticky="w", padx=5, pady=5)
 
         # Action buttons for Add and Update User
         actions_frame = ttk.Frame(frame)
@@ -1451,7 +1838,8 @@ class AdminView:
         
         ttk.Button(actions_frame, text="Add User", command=lambda: add_user()).grid(row=0, column=0, padx=10)
         ttk.Button(actions_frame, text="Update User", command=lambda: update_user()).grid(row=0, column=1, padx=10)
-        
+
+            
 
         def clear_user_details():
             """Clears the values of the user detail fields."""
@@ -1467,7 +1855,7 @@ class AdminView:
             undergraduate_var.set(False)
             graduate_var.set(False)
             already_graduate_var.set(False)
-            work_per_week_var.set(0)
+            work_per_week_var.set(0.0)
             age_group_var.set(0)
             is_active_var.set(False)
             role_type_var.set("")
@@ -1485,6 +1873,12 @@ class AdminView:
                 print(user_id)
                 user_manager = UserManager()  # Create an instance of the class
                 user_data = user_manager.load_user(user_id)  # Call load_user on the instance
+                if user_data["work_per_week"]=="":
+                    user_data["work_per_week"]=0
+                
+                if user_data["age_group"]=="":
+                    user_data["age_group"]=18
+                    
                 # Populate data in the fields if found
                 print(user_data)
                 # user_data = dummy_data.get(user_id, None)
@@ -1729,6 +2123,6 @@ class AdminView:
         self.show_login_screen_callback()
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ThemedTk()
     admin_view = AdminView(root)
     root.mainloop()

@@ -1,13 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 from controllers.login_manager import LoginManager
+from .loader import Loader  # Import the Loader
 
 class LoginView:
     def __init__(self, root, show_signup_screen_callback):
         self.root = root
+        self.loader = Loader(root)  # Initialize the Loader
         self.show_signup_screen_callback = show_signup_screen_callback
         self.root.title("Food Pantry Management System")
-        self.root.geometry("900x600")
+        self.root.geometry("1150x675")
         self.root.config(bg="#f4f4f4")
 
         self.create_login_form()
@@ -36,8 +38,9 @@ class LoginView:
         signup_button = ttk.Button(form_frame, text="Sign Up", width=10, command=self.show_signup_screen_callback)
         signup_button.grid(row=4, column=2, sticky="w", padx=(5, 0), pady=(20, 0))
 
-        exit_button = tk.Button(form_frame, text="Exit", width=20, height=2, command=self.root.quit)
-        exit_button.grid(row=5, column=1, columnspan=3, pady=(20, 0))
+        exit_button = ttk.Button(form_frame, text="Exit", width=20, command=self.root.quit)
+        exit_button.grid(row=5, column=1, columnspan=2, pady=(20, 0))
+
 
     def handle_login(self):
         email = self.email_entry.get()
@@ -53,7 +56,9 @@ class LoginView:
 
         if user_role == "Admin":
             messagebox.showinfo("Login", "Login successful!")
-            self.show_admin_view()  # Navigate to admin view
+            self.loader.show()  # Show loader
+            self.root.after(2000, self.show_admin_view)  # Simulate delay for loading
+            # self.show_admin_view()  # Navigate to admin view
         elif user_role == "User":
             messagebox.showinfo("Login", "Login successful!")
             self.show_user_view()  # Navigate to admin view

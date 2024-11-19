@@ -1,12 +1,36 @@
-    # def show_menu(self):
-    #     # Create menu buttons
-    #     menu_frame = tk.Frame(self.root)
-    #     menu_frame.pack(pady=100)
+import tkinter as tk
+from models.database import Database  # Import the database setup class
+from views.login_view import LoginView
 
-    #     # Login Button
-    #     login_button = tk.Button(menu_frame, text="Login", width=20, height=2, command=self.show_login_screen)
-    #     login_button.grid(row=0, column=0, padx=10, pady=10)
 
-    #     # Exit Button
-    #     exit_button = tk.Button(menu_frame, text="Exit", width=20, height=2, command=self.root.quit)
-    #     exit_button.grid(row=1, column=0, padx=10, pady=10)
+class PantryShopCRMApp:
+    def __init__(self, root):
+        self.root = root
+        self.db = Database()
+        self.show_login_screen()
+
+    def show_login_screen(self):
+        # Destroy existing widgets and open login screen
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        # Pass the main root to LoginView
+        LoginView(self.root, self.show_signup_screen)
+
+    def show_signup_screen(self):
+        # Destroy existing widgets and open signup screen
+        for widget in self.root.winfo_children():
+            widget.destroy()
+            
+        # Pass the main root to SignupView and provide the callback to go back to login screen
+        from views.signup_view import SignupView
+
+        SignupView(self.root, self.show_login_screen)
+        
+
+
+# Main execution
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PantryShopCRMApp(root)
+    root.mainloop()

@@ -1,5 +1,6 @@
 import pandas as pd
 import sqlite3
+from tkinter import messagebox
 
 class UploadFileManager:
     def __init__(self, db_path="pantry_shop_crm.db"):
@@ -11,40 +12,80 @@ class UploadFileManager:
         cursor = connection.cursor()
 
         try:
-            # Load the Excel file into a DataFrame
+            # Read Excel file
             df = pd.read_excel(file_path)
 
+                # Print column names for debugging
+            print("Columns in the Excel file:", df.columns.tolist())
+
+            # Normalize column names
+            df.columns = df.columns.str.strip().str.lower()
+
             # Verify columns in the DataFrame
-            required_columns = ["material_name", "material_type", "description", "current_stock", "status", "created_date", "created_by"]
+            required_columns = ["material_name", "material_type", "description", "current_stock", "status", "created_date", "created_by", "vendor_id", "namebyvendor"]
             if not all(column in df.columns for column in required_columns):
                 raise ValueError("Excel file must contain the required columns: " + ", ".join(required_columns))
 
             # Ensure created_date is in string format
             if "created_date" in df.columns:
-                df["created_date"] = pd.to_datetime(df["created_date"], errors='coerce').dt.strftime("%Y-%m-%d %H:%M:%S")
+                df["created_date"] = pd.to_datetime(df["created_date"], errors='coerce').dt.strftime("%Y-%m-%d")
 
-            # Insert data from DataFrame into the 'materials' table
+            skipped_rows = []
+
             for _, row in df.iterrows():
-                cursor.execute('''
-                    INSERT INTO materials (material_name, material_type, description, current_stock, status, created_date, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    row["material_name"],
-                    row["material_type"],
-                    row["description"],
-                    row["current_stock"],
-                    row["status"],
-                    row["created_date"],
-                    row["created_by"]
-                ))
+                try:
+                    # Check if vendor_id exists in the 'vendors' table
+                    cursor.execute("SELECT COUNT(*) FROM vendors WHERE vendor_id = ?", (row["vendor_id"],))
+                    vendor_exists = cursor.fetchone()[0]
 
-            # Commit changes and close the connection
+                    if not vendor_exists:
+                        raise ValueError(f"Vendor ID {row['vendor_id']} does not exist in the 'vendors' table.")
+
+                    # Insert into 'materials' table
+                    cursor.execute('''
+                        INSERT INTO materials (material_name, material_type, description, current_stock, status, created_date, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        row["material_name"],
+                        row["material_type"],
+                        row["description"],
+                        row["current_stock"],
+                        row["status"],
+                        row["created_date"],
+                        row["created_by"]
+                    ))
+
+                    # Get the last inserted material ID
+                    material_id = cursor.lastrowid
+
+                    # Insert into 'vendor_material' table
+                    cursor.execute('''
+                        INSERT INTO vendor_material (material_id, vendor_id, namebyvendor)
+                        VALUES (?, ?, ?)
+                    ''', (
+                        material_id,
+                        row["vendor_id"],
+                        row["namebyvendor"]
+                    ))
+
+                except Exception as e:
+                    # Add skipped rows with error details
+                    skipped_rows.append({"row": row.to_dict(), "error": str(e)})
+
             connection.commit()
-            print("Materials uploaded successfully.")
+
+            # Show result using messagebox
+            if skipped_rows:
+                skipped_message = "\n".join([f"Row: {row['row']}, Error: {row['error']}" for row in skipped_rows])
+                messagebox.showinfo("Upload Completed", f"Upload completed with skipped rows:\n{skipped_message}")
+            else:
+                messagebox.showinfo("Upload Completed", "Upload completed successfully with no skipped rows.")
+
             return "Materials uploaded successfully."
 
         except Exception as e:
-            print("Error uploading materials:", e)
+            # Show error message
+            messagebox.showerror("Error", f"Error uploading materials: {e}")
             return f"Error uploading materials: {e}"
 
         finally:

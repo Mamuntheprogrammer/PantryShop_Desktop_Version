@@ -8,7 +8,7 @@ class SignupView:
         self.show_login_screen_callback = show_login_screen_callback
         self.signup_manager = SignupManager()
         self.root.title("Sign Up")
-        self.root.geometry("900x600")
+        self.root.geometry("1150x675")
         self.create_signup_form()
 
     def create_signup_form(self):
@@ -33,9 +33,10 @@ class SignupView:
             "already_graduate": tk.BooleanVar(),
             "work_per_week": tk.Entry(form_frame, width=30),
             "age_group": tk.Entry(form_frame, width=30),
-            "is_active": tk.BooleanVar(),
+            
             "role_type": tk.StringVar()  # for dropdown
         }
+        # "is_active": tk.BooleanVar(),
 
         
 
@@ -60,7 +61,7 @@ class SignupView:
             ("Already Graduate:", tk.Checkbutton(form_frame, variable=self.fields["already_graduate"])),
             ("Work per Week:", self.fields["work_per_week"]),
             ("Age Group:", self.fields["age_group"]),
-            ("Is Active:", tk.Checkbutton(form_frame, variable=self.fields["is_active"])),
+            # ("Is Active:", tk.Checkbutton(form_frame, variable=False)),
             ("Role Type:", ttk.Combobox(form_frame, textvariable=self.fields["role_type"], values=["Admin", "User"], width=27))
         ]
      
@@ -96,7 +97,7 @@ class SignupView:
             "already_graduate": self.fields["already_graduate"].get(),
             "work_per_week": self.fields["work_per_week"].get(),
             "age_group": self.fields["age_group"].get(),
-            "is_active": self.fields["is_active"].get(),
+            "is_active": False,
             "role_type": self.fields["role_type"].get()
         }
 

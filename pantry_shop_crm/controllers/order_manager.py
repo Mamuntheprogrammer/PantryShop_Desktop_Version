@@ -183,3 +183,199 @@ class OrderManager:
         except sqlite3.Error as e:
             print(f"Database error: {e}")
             return None
+        
+#  ---------------- For Order - Admin ------------
+
+    def get_all_orders(self):
+        """Get the orders for a specific user."""
+        conn = self.connect()
+        cursor = conn.cursor()
+
+        # Correct the query execution syntax
+        cursor.execute("""
+            SELECT order_id, user_id, order_date, pickup_date, order_status 
+            FROM orders 
+            
+        """)  # Ensure parameters are passed as a tuple
+
+        result = cursor.fetchall()  # Use fetchall() to get all orders for the user
+
+        conn.close()
+
+        if result:
+            return result  # Return all the orders for the user
+        else:
+            raise ValueError("Orders not found")
+        
+    def get_orders_between_dates(self, start_date, end_date):
+        """Get all order details between a specific date range."""
+        conn = self.connect()  # Assuming you have a method to establish the DB connection
+        cursor = conn.cursor()
+
+        # SQL query to get the order details within the specified date range
+        cursor.execute("""
+            SELECT
+                o.order_id,
+                o.user_id,
+                u.first_name,
+                u.last_name,
+                u.email_address,
+                o.order_date,
+                o.pickup_date,
+                o.order_status,
+                o.order_text,
+                oi.material_id,
+                m.material_name,
+                oi.quantity,
+                oi.unit_price,
+                u.role_type
+            FROM
+                orders o
+            INNER JOIN
+                users u ON o.user_id = u.user_id
+            INNER JOIN
+                order_item oi ON o.order_id = oi.order_id
+            INNER JOIN
+                materials m ON oi.material_id = m.material_id
+            WHERE
+                o.pickup_date BETWEEN ? AND ?
+            ORDER BY
+                o.pickup_date;
+        """, (start_date, end_date))  # Use the tuple (start_date, end_date) for parameterized query
+
+        result = cursor.fetchall()  # Fetch all matching records
+
+        conn.close()
+
+        if result:
+            return result  # Return all orders within the specified date range
+        else:
+            raise ValueError("No orders found in the specified date range")
+
+
+# ------------------------------------
+    def get_orders_between_dates_p(self, start_date, end_date):
+        """Get all order details between a specific date range."""
+        conn = self.connect()  # Assuming you have a method to establish the DB connection
+        cursor = conn.cursor()
+
+        # SQL query to get the order details within the specified date range
+        cursor.execute("""
+            SELECT
+                DISTINCT o.order_id,
+                o.order_status,
+                o.user_id,
+                o.order_date,
+                o.pickup_date
+                
+            FROM
+                orders o
+            INNER JOIN
+                users u ON o.user_id = u.user_id
+            INNER JOIN
+                order_item oi ON o.order_id = oi.order_id
+            INNER JOIN
+                materials m ON oi.material_id = m.material_id
+            WHERE
+                o.pickup_date BETWEEN ? AND ?
+            ORDER BY
+                o.order_status;
+        """, (start_date, end_date))  # Use the tuple (start_date, end_date) for parameterized query
+
+        result = cursor.fetchall()  # Fetch all matching records
+
+        conn.close()
+
+        if result:
+            return result  # Return all orders within the specified date range
+        else:
+            raise ValueError("No orders found in the specified date range")
+        
+
+
+
+#  ---------------- update the stock , change the order status ---------
+
+
+    def process_existing_order(self, order_id):
+        try:
+            # Connect to the database
+            conn = self.connect()
+            cursor = conn.cursor()
+
+            # Check if the order exists and is in "Pending" status
+            cursor.execute("SELECT order_status FROM orders WHERE order_id = ?", (order_id,))
+            order = cursor.fetchone()
+
+            if not order:
+                return {"success": False, "message": "Order not found."}
+            
+            order_status = order[0]
+
+            if order_status != "Pending":
+                return {"success": False, "message": "Order is already approved or processed."}
+
+            # Track whether any items are removed (insufficient stock)
+            all_items_approved = True
+
+            # Get all items in the order
+            cursor.execute("""
+                SELECT oi.material_id, oi.quantity
+                FROM order_item oi
+                WHERE oi.order_id = ?
+            """, (order_id,))
+            items = cursor.fetchall()
+
+            for material_id, quantity in items:
+                # Check available stock for the material
+                cursor.execute("SELECT current_stock FROM materials WHERE material_id = ?", (material_id,))
+                stock = cursor.fetchone()
+
+                if stock:
+                    stock = stock[0]  # stock is returned as a tuple, so access the first element
+                    if float(stock) >= float(quantity):  # Convert both to float before comparison
+                        # Update the material stock
+                        cursor.execute("""
+                            UPDATE materials
+                            SET current_stock = current_stock - ?
+                            WHERE material_id = ?
+                        """, (quantity, material_id))
+                    else:
+                        # Insufficient stock, delete the order item
+                        cursor.execute("""
+                            DELETE FROM order_item
+                            WHERE order_id = ? AND material_id = ?
+                        """, (order_id, material_id))
+                        all_items_approved = False
+                else:
+                    # If no stock information, consider the item as failed
+                    cursor.execute("""
+                        DELETE FROM order_item
+                        WHERE order_id = ? AND material_id = ?
+                    """, (order_id, material_id))
+                    all_items_approved = False
+
+            # Update the order status based on stock availability
+            if all_items_approved:
+                cursor.execute("""
+                    UPDATE orders
+                    SET order_status = 'Approved'
+                    WHERE order_id = ?
+                """, (order_id,))
+            else:
+                cursor.execute("""
+                    UPDATE orders
+                    SET order_status = 'Pending'
+                    WHERE order_id = ?
+                """, (order_id,))
+
+            # Commit the changes and close the connection
+            conn.commit()
+            return {"success": True, "message": "Order processed successfully"}
+
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return {"success": False, "message": "An error occurred during order processing."}
+        
+        finally:
+            conn.close()

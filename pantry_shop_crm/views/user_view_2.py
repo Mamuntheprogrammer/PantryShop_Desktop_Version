@@ -10,6 +10,7 @@ from tkcalendar import DateEntry
 
 from controllers import user_manager2
 from controllers.order_manager import OrderManager
+from controllers.udashboard import UDashboardManager
 
 class UserView:
     
@@ -23,12 +24,15 @@ class UserView:
         self.orders = {}
         self.order_counter = 1
         self.line_items_tree = None
+        self.root.title("User Dashboard")
 
         # Show the initial user home with a welcome message
-        self.show_user_home()
+        self.create_user_dashboard()
 
         # Create the user menu bar
         self.create_user_menu()
+
+
 
     def create_user_menu(self):
         # Create the menu bar
@@ -53,41 +57,120 @@ class UserView:
 
         # Configure the root window to display this menu
         self.root.config(menu=menu_bar)
+    
+    def create_user_dashboard(self):
+        # Main dashboard frame
+        # Main dashboard frame
+        dashboard_frame = ttk.Frame(self.root, padding="20")
+        dashboard_frame.pack(fill="both", expand=True)
+
+        # Content frame where each menu option frame will be displayed
+        self.content_frame = ttk.Frame(dashboard_frame, padding="20", relief="solid")
+        self.content_frame.pack(expand=True, fill="both")
+
+        # Show a default welcome message in the content frame
+        self.show_welcome_message()
 
     def show_frame(self, frame):
-        if self.current_frame:
-            self.current_frame.destroy()
+        """Display the given frame in the content area, hiding any existing frame."""
+        if self.current_frame is not None:
+            self.current_frame.pack_forget()
+        frame.pack(expand=True, fill="both")
         self.current_frame = frame
-        self.current_frame.pack(fill="both", expand=True)
-
-    def show_user_home(self):
-        # Create the main frame with a welcome message
-        frame = ttk.Frame(self.root)
-        welcome_message = "Welcome, User!"  # Replace "User" with the actual user's name if available
-        ttk.Label(frame, text=welcome_message, font=("Helvetica", 18, "bold")).pack(pady=20)
-        ttk.Label(frame, text="Please use the menu to navigate.", font=("Helvetica", 12)).pack(pady=10)
-        self.show_frame(frame)
 
 
-#  show view Profile 
+
+    def show_welcome_message(self):    
+        """Display a welcome message with a compact grid of count cards and visualizations.""" 
+        # Create the welcome frame
+        welcome_frame = ttk.Frame(self.content_frame)  # Ensure correct parent
+        welcome_frame.pack(fill="both", expand=True, padx=20, pady=2)
+        # Display the welcome label
+        ttk.Label(welcome_frame, text=f"Welcome to the {session.user_name}'s Dashboard", font=("Helvetica", 16)).pack(pady=10)
+
+        # Fetch and display statistics
+        dashboard_manager = UDashboardManager()
+
+        data = dashboard_manager.get_user_dashboard_data(session.user_id)
+
+
+        stats_frame = ttk.Frame(welcome_frame)
+        stats_frame.pack(fill="both", expand=True)
+
+        for i in range(4):
+            stats_frame.grid_columnconfigure(i, weight=1)
+
+
+
+        def create_card(parent, title, count):
+            """
+            Creates a styled rectangular card with title and large count in two sections.
+
+            :param parent: The parent frame where the card will be placed.
+            :param title: The title of the card (e.g., "Total Orders").
+            :param count: The count to be displayed in large font (e.g., number of orders).
+            """
+            # Create a style for the card
+            style = ttk.Style()
+            style.configure("Card.TFrame", 
+                            relief="raised", 
+                            background="#f9f9f9",  # Light background for card
+                            padding=10)
+
+            # Create the shadow frame (light background with no border)
+            shadow_frame = ttk.Frame(parent, style="Card.TFrame", padding=5)
+            shadow_frame.grid_propagate(False)  # Prevent resizing based on content
+
+            # Define font styles
+            title_font = ("Helvetica", 10, "bold")  # Small font for the title
+            count_font = ("Helvetica", 18, "bold")  # Large font for the count
+
+            # Create and pack the title label (small font at the top)
+            title_label = ttk.Label(shadow_frame, text=title, font=title_font, anchor="center", foreground="#333")
+            title_label.pack(expand=False, fill="both", padx=5, pady=5)
+
+            # Create and pack the count label (large font at the bottom)
+            count_label = ttk.Label(shadow_frame, text=str(count), font=count_font, anchor="center", foreground="#007bff")
+            count_label.pack(expand=True, fill="both", padx=5, pady=5)
+
+            # Place the shadow frame in the grid
+            shadow_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+
+            return shadow_frame
+
+
+
+        # Assuming 'stats_frame' is the frame where you want to display the cards
+        create_card(stats_frame, "Total Orders", data['total_orders']).grid(row=0, column=0, padx=10, pady=10)
+        create_card(stats_frame, "Approved Orders", data['approved_orders']).grid(row=0, column=1, padx=10, pady=10)
+        create_card(stats_frame, "Pending Orders", data['pending_orders']).grid(row=0, column=2, padx=10, pady=10)
+        create_card(stats_frame, "Last Order ID", data['last_order_id']).grid(row=0, column=3, padx=10, pady=10)
+        create_card(stats_frame, "Last Order Date", data['last_order_date']).grid(row=1, column=0, padx=10, pady=10, columnspan=4)
+
+        # Show the frame
+        self.show_frame(welcome_frame)
+
+
+
+
+
 
     def show_view_profile(self):
-        frame = ttk.Frame(self.root)
+        frame = ttk.Frame(self.content_frame)
         
         # Title label
         ttk.Label(frame, text="View Profile", font=("Helvetica", 16, "bold")).pack(pady=20)
 
-        # Create a frame to contain the profile fields
-        profile_frame = ttk.Frame(frame)
-        profile_frame.pack(pady=10)
+        # Create a LabelFrame to contain the profile fields in two columns
+        profile_frame = ttk.LabelFrame(frame, text="User Profile", padding=(10, 10))
+        profile_frame.pack(pady=10, padx=20, fill="both", expand=True)
 
         user_manager = user_manager2.UserManager2()
         self.user_data = user_manager.load_user(session.user_id)
-        # print(self.user_data)
 
         # Define the user fields and map them to user data keys from the loaded dictionary
         fields = [
-           ("User ID", self.user_data["user_id"]),
+            ("User ID", self.user_data["user_id"]),
             ("First Name", self.user_data["first_name"]),
             ("Last Name", self.user_data["last_name"]),
             ("Email Address", self.user_data["email_address"]),
@@ -105,16 +188,19 @@ class UserView:
             ("Created Date", self.user_data["created_date"]),
         ]
         
-        # Loop through the fields and display them in a vertical list
-        for label_text, value in fields:
-            field_frame = ttk.Frame(profile_frame)
-            field_frame.pack(fill="x", pady=5)
+        # Loop through the fields and display them in two columns inside the LabelFrame
+        for idx, (label_text, value) in enumerate(fields):
+            row = idx // 2  # For two columns, this will alternate the rows
+            col = idx % 2   # Alternate between column 0 and 1
             
-            ttk.Label(field_frame, text=f"{label_text}:", font=("Helvetica", 12), anchor="w", width=15).pack(side="left", padx=10)
-            ttk.Label(field_frame, text=value, font=("Helvetica", 12), relief="sunken", width=30).pack(side="left", padx=10)
+            # Label for the field name
+            ttk.Label(profile_frame, text=f"{label_text}:", font=("Helvetica", 12), anchor="w", width=20).grid(row=row, column=col*2, padx=10, pady=5, sticky="w")
+            
+            # Value for the field
+            ttk.Label(profile_frame, text=value, font=("Helvetica", 12), relief="sunken", width=30).grid(row=row, column=col*2+1, padx=10, pady=5, sticky="w")
         
         # Add a back button to return to home screen
-        back_button = ttk.Button(frame, text="Back", command=self.show_user_home)
+        back_button = ttk.Button(frame, text="Back", command=self.show_welcome_message)
         back_button.pack(pady=20)
 
         self.show_frame(frame)
@@ -122,8 +208,11 @@ class UserView:
 
 
 
+
+
+
     def show_update_profile(self):
-        frame = ttk.Frame(self.root)
+        frame = ttk.Frame(self.content_frame)
    
         # Title label
         ttk.Label(frame, text="Update Profile", font=("Helvetica", 16, "bold")).pack(pady=20)
@@ -165,7 +254,7 @@ class UserView:
         save_button.pack(pady=20)
 
         # Button to cancel and go back to the profile view
-        cancel_button = ttk.Button(frame, text="Home", command=self.show_user_home)
+        cancel_button = ttk.Button(frame, text="Home", command=self.show_welcome_message)
         cancel_button.pack(pady=10)
 
         self.show_frame(frame)
@@ -192,7 +281,7 @@ class UserView:
             self.root.after(2000, success_label.destroy)  # 2000 milliseconds = 2 seconds
             
             # Redirect back to view profile after saving changes
-            self.show_user_home()
+            self.show_welcome_message()
 
 
 
@@ -211,7 +300,7 @@ class UserView:
         self.current_view = "create_order"
 
         # Main frame with scrollable area
-        frame = ttk.Frame(self.root)
+        frame = ttk.Frame(self.content_frame)
         frame.pack(fill="both", expand=True)
         
         # Horizontal scrollbar for the main frame
@@ -250,7 +339,10 @@ class UserView:
 
         # Add button at the bottom of the product frame
         add_button = ttk.Button(product_frame, text="Add Selected Product", command=lambda: self.add_selected_to_cart(product_tree))
-        add_button.pack(pady=10)
+        add_button.pack(side="left",pady=10)
+        # Add a back button to return to home screen
+        back_button = ttk.Button(product_frame, text="Home", command=self.show_welcome_message)
+        back_button.pack(side="left",padx=10)
 
         # Order Frame with Border and Padding
         self.order_frame = ttk.Frame(frame, borderwidth=2, relief="groove", padding=10)
@@ -410,7 +502,7 @@ class UserView:
 
 
 
-        self.show_user_home()
+        self.show_welcome_message()
 
 
 
@@ -422,7 +514,7 @@ class UserView:
         self.current_view = "manage_order"
 
         # Main frame for managing orders
-        frame = ttk.Frame(self.root)
+        frame = ttk.Frame(self.content_frame)
         frame.pack(fill="both", expand=True)
 
         # Label for Orders Frame
@@ -459,14 +551,14 @@ class UserView:
             order_tree.insert("", "end", values=(order[0], order[1], order[2], order[3], order[4]))
 
         # Bind an event when an order is selected
-        order_tree.bind("<ButtonRelease-1>", lambda event, tree=order_tree: self.view_order_details(event, tree))
+        order_tree.bind("<Double-1>", lambda event, tree=order_tree: self.view_order_details(event, tree))
 
         # Buttons for managing orders (View, Edit, Delete)
         manage_buttons_frame = ttk.Frame(frame)
         manage_buttons_frame.pack(fill="x", pady=10)
 
         # Add a back button to return to home screen
-        back_button = ttk.Button(manage_buttons_frame, text="Back", command=self.show_user_home)
+        back_button = ttk.Button(manage_buttons_frame, text="Back", command=self.show_welcome_message)
         back_button.pack(pady=20)
 
         # Show the frame

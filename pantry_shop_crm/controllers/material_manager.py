@@ -27,12 +27,9 @@ class MaterialManager:
             # Commit changes and close the connection
             conn.commit()
             return {"success": True, "message": "Material type created successfully"}
-            
-
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred during Material Creation."}
-
         finally:
             conn.close()
  
@@ -43,7 +40,7 @@ class MaterialManager:
         try:
             conn = self.connect()
             cursor = conn.cursor()
-            cursor.execute("SELECT m_type FROM material_type")
+            cursor.execute("SELECT id FROM material_type")
             material_types = [row[0] for row in cursor.fetchall()]
             conn.close()
             return material_types
@@ -51,6 +48,22 @@ class MaterialManager:
             print("Error fetching material types:", e)
             return []
         
+
+
+    def get_vendor_ids(self):
+        # Fetch material types from the database and return as a list
+        try:
+            conn = self.connect()
+            cursor = conn.cursor()
+            cursor.execute("SELECT vendor_id FROM vendors")
+            vendorids = [row[0] for row in cursor.fetchall()]
+            print("from get vendors id ",vendorids)
+            conn.close()
+            return vendorids
+        except Exception as e:
+            print("Error fetching vendors:", e)
+            return []
+    
 #  -------------------------------Create meterial logics--------------------
 
     def add_material(self, material_data):
@@ -70,6 +83,24 @@ class MaterialManager:
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'), material_data['created_by']
             ))
 
+                    # Fetch vendor_name for namebyvendor
+            cursor.execute("SELECT vendor_name FROM Vendors WHERE vendor_id = ?", (material_data['vendor_id']))
+            
+            vendor_name = cursor.fetchone()
+            print(vendor_name)
+            if vendor_name:
+                vendor_name = vendor_name[0]  # Extract the name from the tuple
+                print(vendor_name)
+
+                # Insert into Vendormaterial
+                cursor.execute(
+                    "INSERT INTO Vendor_material (material_id, vendor_id, namebyvendor) VALUES (?, ?, ?)",
+                    (material_data['material_id'], material_data['vendor_id'], vendor_name)
+                )
+
+            conn.commit()
+            print("Material and VendorMaterial records added successfully!")
+
             conn.commit()
             messagebox.showinfo("Material Added", "New material has been successfully added.")
         except sqlite3.Error as e:
@@ -85,12 +116,24 @@ class MaterialManager:
 
             # Update the query to join materials with material_types to get the type name
             query = """
-                SELECT materials.material_id, materials.material_name, material_type.m_type, 
-                    materials.description, materials.current_stock, materials.status, 
-                    materials.created_date, materials.created_by
-                FROM materials
-                JOIN material_type ON materials.material_type = material_type.id
-                WHERE materials.material_id = ?
+                        SELECT 
+                            materials.material_id, 
+                            materials.material_name, 
+                            material_type.id, 
+                            materials.description, 
+                            materials.current_stock, 
+                            materials.status, 
+                            materials.created_date, 
+                            materials.created_by, 
+                            vendor_material.vendor_id
+                        FROM 
+                            materials
+                        JOIN 
+                            material_type ON materials.material_type = material_type.id
+                        LEFT JOIN 
+                            vendor_material ON materials.material_id = vendor_material.material_id
+                        WHERE 
+                            materials.material_id = ?;
             """
             cursor.execute(query, (material_id,))
             material = cursor.fetchone()
@@ -105,7 +148,8 @@ class MaterialManager:
                     "current_stock": material[4],
                     "status": material[5],
                     "created_date": material[6],
-                    "created_by": material[7]
+                    "created_by": material[7],
+                    "vendor_id": material[8]
                 }
                 return material_data
             else:
@@ -121,18 +165,28 @@ class MaterialManager:
     def update_material(self, material_id, updated_data):
         """Updates an existing material's information in the database."""
         try:
+            print("from updat:",updated_data)
             conn = self.connect()
             cursor = conn.cursor()
 
             query = """
-            UPDATE materials SET material_name = ?, m_type = ?, description = ?, current_stock = ?,
+            UPDATE materials SET material_name = ?, material_type = ?, description = ?, current_stock = ?,
                                 status = ?, created_by = ?
             WHERE material_id = ?
             """
             cursor.execute(query, (
-                updated_data['material_name'], updated_data['m_type'], updated_data['description'],
+                updated_data['material_name'], updated_data['material_type'], updated_data['description'],
                 updated_data['current_stock'], updated_data['status'], updated_data['created_by'], material_id
             ))
+
+            cursor.execute(
+                """UPDATE Vendor_material 
+                SET vendor_id = ?, 
+                    namebyvendor = (SELECT vendor_name FROM Vendors WHERE vendor_id = ?)
+                WHERE material_id = ?""",
+                (updated_data['vendor_id'], updated_data['vendor_id'], material_id
+                 ))
+
 
             conn.commit()
 

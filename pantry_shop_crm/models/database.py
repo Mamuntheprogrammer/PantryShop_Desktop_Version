@@ -40,6 +40,19 @@ class Database:
                         role_type TEXT,
                         created_date TEXT
                     );''')
+        
+        # Insert dummy data
+        self.cursor.execute('''
+            INSERT INTO users (
+                first_name, last_name, email_address, password, mobile_number, 
+                fulltime, parttime, undergraduate, graduate, already_graduate, 
+                work_per_week, age_group, is_active, role_type, created_date
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'));
+        ''', (
+            "admin", None, "admin@email.com", "admin", None,
+            False, False, False, False, False, None, None, True, "Admin"
+        ))
 
         # Create Orders Table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS orders (

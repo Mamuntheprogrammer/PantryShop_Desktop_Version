@@ -1,11 +1,12 @@
 import tkinter as tk
 from models.database import Database  # Import the database setup class
 from views.login_view import LoginView
-
+from ttkthemes import ThemedTk
 
 class PantryShopCRMApp:
     def __init__(self, root):
         self.root = root
+        self.root.set_theme("arc")
         self.db = Database()
         self.show_login_screen()
 
@@ -31,6 +32,6 @@ class PantryShopCRMApp:
 
 # Main execution
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ThemedTk()
     app = PantryShopCRMApp(root)
     root.mainloop()
