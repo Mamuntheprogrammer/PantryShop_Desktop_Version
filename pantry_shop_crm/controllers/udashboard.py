@@ -47,7 +47,7 @@ class UDashboardManager:
             }
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching dashboard data."}
 
         finally:

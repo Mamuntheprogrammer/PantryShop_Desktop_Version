@@ -31,7 +31,7 @@ class OrderManager:
             return {"data": materials}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching materials."}
 
         finally:
@@ -86,7 +86,7 @@ class OrderManager:
             return {"success": True, "message": "Order created successfully"}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred during order creation."}
 
         finally:
@@ -181,7 +181,7 @@ class OrderManager:
                 return None
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return None
         
 #  ---------------- For Order - Admin ------------
@@ -374,7 +374,7 @@ class OrderManager:
             return {"success": True, "message": "Order processed successfully"}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred during order processing."}
         
         finally:

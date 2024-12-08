@@ -575,7 +575,7 @@ class UserView:
 
         order_manager = OrderManager()
         order_details = order_manager.get_ordersdetails(order_id)
-        print(order_details)
+        # print(order_details)
 
         if order_details:
             # Create a popup window to display order details

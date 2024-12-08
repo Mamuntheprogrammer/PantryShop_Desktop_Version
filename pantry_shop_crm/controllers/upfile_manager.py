@@ -6,6 +6,10 @@ class UploadFileManager:
     def __init__(self, db_path="pantry_shop_crm.db"):
         self.db_path = db_path
 
+# import sqlite3
+# import pandas as pd
+# from tkinter import messagebox
+
     def upload_materials(self, file_path):
         # Connect to the database
         connection = sqlite3.connect(self.db_path)
@@ -15,8 +19,8 @@ class UploadFileManager:
             # Read Excel file
             df = pd.read_excel(file_path)
 
-                # Print column names for debugging
-            print("Columns in the Excel file:", df.columns.tolist())
+            # Print column names for debugging
+            # print("Columns in the Excel file:", df.columns.tolist())
 
             # Normalize column names
             df.columns = df.columns.str.strip().str.lower()
@@ -41,8 +45,34 @@ class UploadFileManager:
                     if not vendor_exists:
                         raise ValueError(f"Vendor ID {row['vendor_id']} does not exist in the 'vendors' table.")
 
-                    # Insert into 'materials' table
+                    # Check if material_type exists in the 'material_type' table
+                    cursor.execute("SELECT COUNT(*) FROM material_type WHERE id = ?", (row["material_type"],))
+                    material_type_exists = cursor.fetchone()[0]
+
+                    if not material_type_exists:
+                        raise ValueError(f"Material Type '{row['material_type']}' does not exist in the 'material_type' table.")
+
+                    # Check if the same material_name already exists in the 'materials' table to get material_id
                     cursor.execute('''
+                        SELECT material_id FROM materials WHERE material_name = ?
+                    ''', (row["material_name"],))
+                    material_id_result = cursor.fetchone()
+
+                    if material_id_result:
+                        material_id = material_id_result[0]
+                        
+                        # Check if the combination of material_id and vendor_id already exists in the 'vendor_material' table
+                        cursor.execute('''
+                            SELECT COUNT(*) FROM vendor_material
+                            WHERE material_id = ? AND vendor_id = ?
+                        ''', (material_id, row["vendor_id"]))
+                        vendor_material_exists = cursor.fetchone()[0]
+
+                        if vendor_material_exists:
+                            raise ValueError(f"Material '{row['material_name']}' with Vendor ID {row['vendor_id']} already exists in vendor_material table.")
+                                        
+                    # Insert into 'materials' table
+                    cursor.execute(''' 
                         INSERT INTO materials (material_name, material_type, description, current_stock, status, created_date, created_by)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     ''', (

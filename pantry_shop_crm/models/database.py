@@ -1,6 +1,6 @@
 import sqlite3
 import os
-
+from datetime import datetime
 class Database:
     def __init__(self, db_name="pantry_shop_crm.db"):
         self.db_name = db_name
@@ -13,12 +13,12 @@ class Database:
         if not os.path.exists(self.db_name):
             self.connection = sqlite3.connect(self.db_name)
             self.cursor = self.connection.cursor()
-            print(f"Database {self.db_name} created successfully.")
+            # print(f"Database {self.db_name} created successfully.")
             self._initialize_tables()
         else:
             self.connection = sqlite3.connect(self.db_name)
             self.cursor = self.connection.cursor()
-            print(f"Connected to the existing database: {self.db_name}")
+            # print(f"Connected to the existing database: {self.db_name}")
 
     def _initialize_tables(self):
         # Create Users Table
@@ -33,7 +33,6 @@ class Database:
                         parttime BOOLEAN,
                         undergraduate BOOLEAN,
                         graduate BOOLEAN,
-                        already_graduate BOOLEAN,
                         work_per_week INTEGER,
                         age_group INTEGER,
                         is_active BOOLEAN,
@@ -41,18 +40,20 @@ class Database:
                         created_date TEXT
                     );''')
         
-        # Insert dummy data
         self.cursor.execute('''
             INSERT INTO users (
                 first_name, last_name, email_address, password, mobile_number, 
-                fulltime, parttime, undergraduate, graduate, already_graduate, 
+                fulltime, parttime, undergraduate, graduate, 
                 work_per_week, age_group, is_active, role_type, created_date
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'));
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?);
         ''', (
             "admin", None, "admin@email.com", "admin", None,
-            False, False, False, False, False, None, None, True, "Admin"
+            False, False, False, False, None, None, True, "Admin", datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         ))
+
+
+
 
         # Create Orders Table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS orders (
@@ -118,7 +119,7 @@ class Database:
 
         # Create MaterialType Table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS material_type (
-                                id INTEGER PRIMARY KEY,
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 m_type TEXT,
                                 material_desc TEXT,
                                 created_date TEXT,
@@ -137,9 +138,9 @@ class Database:
 
         # Commit changes and close
         self.connection.commit()
-        print("Tables created successfully!")
+        # print("Tables created successfully!")
 
     def close(self):
         if self.connection:
             self.connection.close()
-            print("Database connection closed.")
+            # print("Database connection closed.")

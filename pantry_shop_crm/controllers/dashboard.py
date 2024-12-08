@@ -38,7 +38,7 @@ class DashboardManager:
             }
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching orders."}
 
         finally:
@@ -70,7 +70,7 @@ class DashboardManager:
             }
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching materials."}
 
         finally:
@@ -90,7 +90,7 @@ class DashboardManager:
             return {"total_users": total_users}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching user count."}
 
         finally:
@@ -110,7 +110,7 @@ class DashboardManager:
             return {"total_vendors": total_vendors}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching vendor count."}
 
         finally:
@@ -137,7 +137,7 @@ class DashboardManager:
             }
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching stock products."}
 
         finally:
@@ -225,8 +225,11 @@ class DashboardManager:
         # Show the final welcome_frame
         self.show_frame(welcome_frame)
 
-    # Updated plot methods to handle Donut Charts
+    # Donut Chart for Order Status
     def plot_order_donut(self, parent_frame, approved_orders, pending_orders, total_orders, column):
+        if total_orders == 0 or (approved_orders == 0 and pending_orders == 0):
+            return  # If no data, don't plot
+        
         sizes = [approved_orders, pending_orders]
         labels = ['Approved', 'Pending']
 
@@ -235,7 +238,8 @@ class DashboardManager:
         ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, wedgeprops={'width': 0.3})
         ax.set_title("Order Status")
         ax.axis('equal')
-         # Adjust the margins of the plot to make more efficient use of space
+
+        # Adjust the margins of the plot to make more efficient use of space
         plt.subplots_adjust(left=0.1, right=0.9, top=0.8, bottom=0.1) 
 
         # Embed Donut chart in Tkinter window
@@ -243,7 +247,12 @@ class DashboardManager:
         canvas.draw()
         canvas.get_tk_widget().grid(row=0, column=column, padx=0, pady=5)
 
+
+    # Donut Chart for Material Status
     def plot_material_donut(self, parent_frame, active_materials, inactive_materials, total_materials, column):
+        if total_materials == 0 or (active_materials == 0 and inactive_materials == 0):
+            return  # If no data, don't plot
+        
         sizes = [active_materials, inactive_materials]
         labels = ['Active', 'Inactive']
 
@@ -252,7 +261,8 @@ class DashboardManager:
         ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, wedgeprops={'width': 0.3})
         ax.set_title("Material Status")
         ax.axis('equal')
-         # Adjust the margins of the plot to make more efficient use of space
+
+        # Adjust the margins of the plot to make more efficient use of space
         plt.subplots_adjust(left=0.1, right=0.9, top=0.8, bottom=0.1)  
 
         # Embed Donut chart in Tkinter window
@@ -260,7 +270,12 @@ class DashboardManager:
         canvas.draw()
         canvas.get_tk_widget().grid(row=0, column=column, padx=0, pady=5)
 
+
+    # Bar Chart for Least Stock Materials
     def plot_least_stock_materials(self, parent_frame, least_stock_materials, column):
+        if not least_stock_materials:
+            return  # If no data, don't plot
+        
         materials = [material[0] for material in least_stock_materials]
         stock = [material[1] for material in least_stock_materials]
 
@@ -277,15 +292,20 @@ class DashboardManager:
             ax.text(bar.get_x() + bar.get_width() / 2, yval / 2,  # Position inside the bar (middle)
                     material, ha='center', va='center', fontweight='bold', color='white')  # Material names inside the bar
 
-
-         # Adjust the margins of the plot to make more efficient use of space
+        # Adjust the margins of the plot to make more efficient use of space
         plt.subplots_adjust(left=0.2, right=0.9, top=0.8, bottom=0.4) 
+
         # Embed bar chart in Tkinter window
         canvas = FigureCanvasTkAgg(fig, master=parent_frame)
         canvas.draw()
         canvas.get_tk_widget().grid(row=0, column=column, padx=0, pady=0)
 
+
+    # Bar Chart for Max Stock Materials
     def plot_max_stock_materials(self, parent_frame, max_stock_materials, column):
+        if not max_stock_materials:
+            return  # If no data, don't plot
+        
         materials = [material[0] for material in max_stock_materials]
         stock = [material[1] for material in max_stock_materials]
 
@@ -301,10 +321,12 @@ class DashboardManager:
             yval = bar.get_height()
             ax.text(bar.get_x() + bar.get_width() / 2, yval / 2,  # Position inside the bar (middle)
                     material, ha='center', va='center', fontweight='bold', color='white')  # Material names inside the bar
-        
-         # Adjust the margins of the plot to make more efficient use of space
+
+        # Adjust the margins of the plot to make more efficient use of space
         plt.subplots_adjust(left=0.2, right=0.9, top=0.8, bottom=0.4) 
+
         # Embed bar chart in Tkinter window
         canvas = FigureCanvasTkAgg(fig, master=parent_frame)
         canvas.draw()
         canvas.get_tk_widget().grid(row=0, column=column, padx=0, pady=0)
+

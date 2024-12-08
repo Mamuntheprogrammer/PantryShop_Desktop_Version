@@ -45,7 +45,7 @@ class MaterialManager:
             conn.close()
             return material_types
         except Exception as e:
-            print("Error fetching material types:", e)
+            # print("Error fetching material types:", e)
             return []
         
 
@@ -57,11 +57,11 @@ class MaterialManager:
             cursor = conn.cursor()
             cursor.execute("SELECT vendor_id FROM vendors")
             vendorids = [row[0] for row in cursor.fetchall()]
-            print("from get vendors id ",vendorids)
+            # print("from get vendors id ",vendorids)
             conn.close()
             return vendorids
         except Exception as e:
-            print("Error fetching vendors:", e)
+            # print("Error fetching vendors:", e)
             return []
     
 #  -------------------------------Create meterial logics--------------------
@@ -87,10 +87,10 @@ class MaterialManager:
             cursor.execute("SELECT vendor_name FROM Vendors WHERE vendor_id = ?", (material_data['vendor_id']))
             
             vendor_name = cursor.fetchone()
-            print(vendor_name)
+            # print(vendor_name)
             if vendor_name:
                 vendor_name = vendor_name[0]  # Extract the name from the tuple
-                print(vendor_name)
+                # print(vendor_name)
 
                 # Insert into Vendormaterial
                 cursor.execute(
@@ -99,7 +99,7 @@ class MaterialManager:
                 )
 
             conn.commit()
-            print("Material and VendorMaterial records added successfully!")
+            # print("Material and VendorMaterial records added successfully!")
 
             conn.commit()
             messagebox.showinfo("Material Added", "New material has been successfully added.")
@@ -165,7 +165,7 @@ class MaterialManager:
     def update_material(self, material_id, updated_data):
         """Updates an existing material's information in the database."""
         try:
-            print("from updat:",updated_data)
+            # print("from updat:",updated_data)
             conn = self.connect()
             cursor = conn.cursor()
 
@@ -238,24 +238,28 @@ class MaterialManager:
             conn = self.connect()  # assuming you have a method in your Database class to connect
             cursor = conn.cursor()
 
-            # SQL query to fetch all materials from the `materials` table
-            cursor.execute('''
-                SELECT material_id, material_name, material_type,description,current_stock, status,created_date,created_by
-                FROM materials
+            # SQL query to fetch all materials along with vendor details
+            cursor.execute(''' 
+                SELECT m.material_id, m.material_name, m.material_type, m.description, m.current_stock, 
+                    m.status, m.created_date, m.created_by, v.vendor_id, v.vendor_name
+                FROM materials m
+                LEFT JOIN vendor_material vm ON m.material_id = vm.material_id
+                LEFT JOIN vendors v ON vm.vendor_id = v.vendor_id
             ''')
 
             # Fetch all rows from the result
             materials = cursor.fetchall()
 
-            # Return the fetched materials
+            # Return the fetched materials along with vendor details
             return {"success": True, "data": materials}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred while fetching materials."}
 
         finally:
             # Ensure the connection is closed after the operation
             conn.close()
+
 
 

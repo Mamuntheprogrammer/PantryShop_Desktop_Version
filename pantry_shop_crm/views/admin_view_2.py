@@ -374,11 +374,11 @@ class AdminView:
         # Function to load existing material data
         def load_material(material_id_var):
             material_id = material_id_var.get()
-            print(material_id)
+            # print(material_id)
 
             if material_id.isdigit():
                 material_data = material_manager.load_material(material_id)
-                print(material_data)
+                # print(material_data)
                 if material_data:
                     material_id_var2.set(material_data["material_id"])
                     material_name_var.set(material_data["material_name"])
@@ -479,7 +479,7 @@ class AdminView:
 
 
         # Convert dummy data to DataFrame for pagination and export purposes
-        self.columns = ["material_id", "material_name", "material_type", "description", "current_stock", "status", "created_date", "created_by"]
+        self.columns = ["material_id", "material_name", "material_type", "description", "current_stock", "status", "created_date", "created_by","Vendor_Id","Vendor_Name"]
         self.material_df = pd.DataFrame(material_data,columns=self.columns)
 
         # Display the first 15 rows initially
@@ -515,7 +515,7 @@ class AdminView:
         tree_frame.pack(fill="both", expand=True)
 
         # Define columns for the Treeview
-        columns = ("material_id", "material_name", "material_type","description", "current_stock", "status","created_date","created_by")
+        columns = ("material_id", "material_name", "material_type","description", "current_stock", "status","created_date","created_by","Vendor_Id","Vendor_Name")
         self.material_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
 
         # Define column headings and set anchor to center
@@ -656,7 +656,7 @@ class AdminView:
 
 
 
-        print(material_data)
+        # print(material_data)
 
         # Call signup manager to handle signup
         manager = MaterialManager()
@@ -709,13 +709,13 @@ class AdminView:
 
         materialtype_data = {
             "material_type_id": self.material_type_id_entry.get(),
-            "material_type": self.material_type_entry.get(),
+            "m_type": self.material_type_entry.get(),
             "material_desc": self.material_desc_entry.get(),
             "created_date": self.created_date_entry.get(),
             "created_by": session.user_id}
 
 
-        print(materialtype_data)
+        # print(materialtype_data)
 
         # Call signup manager to handle signup
         manager = MaterialManager()
@@ -1083,7 +1083,7 @@ class AdminView:
             material_id = material_id_var.get()
             if material_id.isdigit():
                 material_data = material_manager.load_material(material_id)
-                print(material_data)
+                # print(material_data)
                 if material_data:
                     material_name_var.set(material_data["material_name"])
                     description_var.set(material_data["description"])
@@ -1371,12 +1371,12 @@ class AdminView:
     def approve_selected_order(self):
         # Approve or unapprove the selected order
         selected_item = self.order_tree.selection()
-        print(selected_item)
+        # print(selected_item)
         if selected_item:
             order_id = self.order_tree.item(selected_item)["values"][0]
             ord_obj = OrderManager()
             result = ord_obj.process_existing_order(order_id)
-            print(result)
+            # print(result)
 
 
     def view_order_details(self, event, tree):
@@ -1386,7 +1386,7 @@ class AdminView:
 
         order_manager = OrderManager()
         order_details = order_manager.get_ordersdetails(order_id)
-        print(order_details)
+        # print(order_details)
 
         if order_details:
             # Create a popup window to display order details
@@ -1430,7 +1430,7 @@ class AdminView:
         order_details = order_manager.get_ordersdetails(order_id)
         pdf_obj = PDFManager()
         pdf_obj.generate_receipt(order_details,order_id)
-        print("printed")
+        # print("printed")
 
 
     def export_order_report(self):
@@ -1766,7 +1766,7 @@ class AdminView:
         load_user_frame.pack(fill="x", padx=10, pady=5)
         
         # User ID field to load existing user data
-        ttk.Label(load_user_frame, text="User ID (Enter to Edit Existing User):").pack(side="left")
+        ttk.Label(load_user_frame, text="User ID OR Email (Enter to Edit Existing User):").pack(side="left")
         user_id_var = StringVar()
         ttk.Entry(load_user_frame, textvariable=user_id_var).pack(side="left", padx=5)
         ttk.Button(load_user_frame, text="Load User", command=lambda: load_user(user_id_var)).pack(side="left", padx=5)
@@ -1785,7 +1785,6 @@ class AdminView:
         parttime_var = BooleanVar()
         undergraduate_var = BooleanVar()
         graduate_var = BooleanVar()
-        already_graduate_var = BooleanVar()
         work_per_week_var = IntVar()
         age_group_var = IntVar()
         is_active_var = BooleanVar()
@@ -1802,7 +1801,6 @@ class AdminView:
             ("Part-Time", parttime_var),
             ("Undergraduate", undergraduate_var),
             ("Graduate", graduate_var),
-            ("Already Graduated", already_graduate_var),
             ("Work per Week", work_per_week_var),
             ("Age Group", age_group_var),
             ("Active", is_active_var),
@@ -1854,7 +1852,6 @@ class AdminView:
             parttime_var.set(False)
             undergraduate_var.set(False)
             graduate_var.set(False)
-            already_graduate_var.set(False)
             work_per_week_var.set(0.0)
             age_group_var.set(0)
             is_active_var.set(False)
@@ -1866,13 +1863,15 @@ class AdminView:
         # Function to load existing user data
         def load_user(user_id_var):
             user_id = user_id_var.get()
-            if user_id.isdigit():
-                user_id = int(user_id)
+            if user_id:
+                # user_id = int(user_id)
                 # Retrieve user data from the database (replace with actual data loading)
                 # Here would be the call to UserManager to retrieve user data
-                print(user_id)
+                # print(user_id)
                 user_manager = UserManager()  # Create an instance of the class
                 user_data = user_manager.load_user(user_id)  # Call load_user on the instance
+                
+                
                 if user_data["work_per_week"]=="":
                     user_data["work_per_week"]=0
                 
@@ -1880,7 +1879,7 @@ class AdminView:
                     user_data["age_group"]=18
                     
                 # Populate data in the fields if found
-                print(user_data)
+                # print(user_data)
                 # user_data = dummy_data.get(user_id, None)
                 if user_data:
                     first_name_var.set(user_data["first_name"])
@@ -1892,7 +1891,6 @@ class AdminView:
                     parttime_var.set(user_data["parttime"])
                     undergraduate_var.set(user_data["undergraduate"])
                     graduate_var.set(user_data["graduate"])
-                    already_graduate_var.set(user_data["already_graduate"])
                     work_per_week_var.set(user_data["work_per_week"])
                     age_group_var.set(user_data["age_group"])
                     is_active_var.set(user_data["is_active"])
@@ -1914,7 +1912,6 @@ class AdminView:
                 "parttime": parttime_var.get(),
                 "undergraduate": undergraduate_var.get(),
                 "graduate": graduate_var.get(),
-                "already_graduate": already_graduate_var.get(),
                 "work_per_week": work_per_week_var.get(),
                 "age_group": age_group_var.get(),
                 "is_active": is_active_var.get(),
@@ -1928,7 +1925,7 @@ class AdminView:
         # Function to update existing user data
         def update_user():
             user_id = user_id_var.get()
-            if user_id.isdigit():
+            if user_id:
                 updated_user_data = {
                     "first_name": first_name_var.get(),
                     "last_name": last_name_var.get(),
@@ -1939,7 +1936,6 @@ class AdminView:
                     "parttime": parttime_var.get(),
                     "undergraduate": undergraduate_var.get(),
                     "graduate": graduate_var.get(),
-                    "already_graduate": already_graduate_var.get(),
                     "work_per_week": work_per_week_var.get(),
                     "age_group": age_group_var.get(),
                     "is_active": is_active_var.get(),
@@ -1974,14 +1970,14 @@ class AdminView:
         user_manger = UserManager()
         user_data = user_manger.get_all_users()
 
-        print(user_data)
+        # print(user_data)
           # Replace with actual database fetch method
 
         # Convert fetched data to DataFrame for pagination and export purposes
         self.columns = [
             "user_id", "first_name", "last_name", "email_address",
             "mobile_number", "fulltime", "parttime", "undergraduate", "graduate",
-            "already_graduate", "work_per_week", "age_group", "is_active", "role_type", "created_date"
+            "work_per_week", "age_group", "is_active", "role_type", "created_date"
         ]
         self.user2_df = pd.DataFrame(user_data["data"], columns=self.columns)
 
@@ -2018,7 +2014,7 @@ class AdminView:
         # Define columns for the Treeview
         columns = ("user_id", "first_name", "last_name", "email_address",
             "mobile_number", "fulltime", "parttime", "undergraduate", "graduate",
-            "already_graduate", "work_per_week", "age_group", "is_active", "role_type", "created_date")
+         "work_per_week", "age_group", "is_active", "role_type", "created_date")
         self.user_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=self.page_size)
 
         # Define column headings and set anchor to center
@@ -2091,27 +2087,6 @@ class AdminView:
 
 #-------------------------------------- Pending -----------------------------------------------
 
-
-    def upload_stock(self):
-        print("Uploading Stock")
-
-    def update_stock(self):
-        print("Updating Stock")
-
-    def view_stock_report(self):
-        print("Viewing Stock Report")
-
-    def manage_order(self):
-        print("Creating Order")
-
-    def view_order_report(self):
-        print("Viewing Order Report")
-
-    def add_user(self):
-        print("Adding User")
-
-    def view_user_list(self):
-        print("Viewing User List")
 
 
     def logout(self):

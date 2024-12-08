@@ -22,26 +22,26 @@ class SignupManager:
                 INSERT INTO users (
                     first_name, last_name, email_address,password, mobile_number, 
                     fulltime, parttime, undergraduate, graduate, 
-                    already_graduate, work_per_week, age_group, 
+                    work_per_week, age_group, 
                     is_active, role_type, created_date
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                            
             ''', (
                 user_data["first_name"], user_data["last_name"], 
                 user_data["email_address"], user_data["password"], user_data["mobile_number"], 
                 user_data["fulltime"], user_data["parttime"], 
                 user_data["undergraduate"], user_data["graduate"], 
-                user_data["already_graduate"], user_data["work_per_week"], 
+                user_data["work_per_week"], 
                 user_data["age_group"], user_data["is_active"], 
                 user_data["role_type"], datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             ))
 
             conn.commit()
-            print("User saved successfully!")
+            # print("User saved successfully!")
             return {"success": True, "message": "Signup successful!"}
 
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            # print(f"Database error: {e}")
             return {"success": False, "message": "An error occurred during signup."}
 
         finally:

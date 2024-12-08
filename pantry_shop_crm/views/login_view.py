@@ -45,14 +45,14 @@ class LoginView:
     def handle_login(self):
         email = self.email_entry.get()
         password = self.password_entry.get()
-        print(email,password)
+        # print(email,password)
 
         # Create an instance of LoginManager with email and password
         login_manager = LoginManager(email, password)
 
         # Call the authenticate method
         user_role = login_manager.authenticate()
-        print(user_role)
+        # print(user_role)
 
         if user_role == "Admin":
             messagebox.showinfo("Login", "Login successful!")
@@ -62,8 +62,8 @@ class LoginView:
         elif user_role == "User":
             messagebox.showinfo("Login", "Login successful!")
             self.show_user_view()  # Navigate to admin view
-        else:
-            print("Invalid credentials.")
+        # else:
+        #     print("Invalid credentials.")
 
 
 

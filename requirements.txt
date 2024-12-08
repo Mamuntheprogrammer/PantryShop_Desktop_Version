@@ -1,0 +1,8 @@
+loader==2017.9.11
+matplotlib==3.9.3
+packaging==24.2
+pandas==2.2.3
+reportlab==4.2.5
+tkcalendar==1.6.1
+ttkthemes==3.2.2
+
