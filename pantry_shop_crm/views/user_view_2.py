@@ -180,7 +180,6 @@ class UserView:
             ("Parttime", self.user_data["parttime"]),
             ("Undergraduate", self.user_data["undergraduate"]),
             ("Graduate", self.user_data["graduate"]),
-            ("Already Graduate", self.user_data["already_graduate"]),
             ("Work Per Week", self.user_data["work_per_week"]),
             ("Age Group", self.user_data["age_group"]),
             ("Is Active", self.user_data["is_active"]),

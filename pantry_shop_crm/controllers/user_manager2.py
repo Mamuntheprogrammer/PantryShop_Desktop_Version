@@ -19,7 +19,7 @@ class UserManager2:
 
             query = """
             SELECT user_id, first_name, last_name, email_address, password,mobile_number, 
-                   fulltime, parttime, undergraduate, graduate, already_graduate, 
+                   fulltime, parttime, undergraduate, graduate, 
                    work_per_week, age_group, is_active, role_type, created_date
             FROM users
             WHERE user_id = ?
@@ -39,12 +39,11 @@ class UserManager2:
                     "parttime": user[7],
                     "undergraduate": user[8],
                     "graduate": user[9],
-                    "already_graduate": user[10],
-                    "work_per_week": user[11],
-                    "age_group": user[12],
-                    "is_active": user[13],
-                    "role_type": user[14],
-                    "created_date": user[15]
+                    "work_per_week": user[10],
+                    "age_group": user[11],
+                    "is_active": user[12],
+                    "role_type": user[13],
+                    "created_date": user[14]
                 }
                 return user_data
             else:
