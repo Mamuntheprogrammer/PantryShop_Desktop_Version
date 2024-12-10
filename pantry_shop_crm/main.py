@@ -1,3 +1,11 @@
+import sys
+sys.setrecursionlimit(15000)
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+
 import tkinter as tk
 from models.database import Database  # Import the database setup class
 from views.login_view import LoginView
